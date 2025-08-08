@@ -16,6 +16,7 @@ python-dotenv>=1.0.0
 
 # Google Gemini AI
 google-generativeai>=0.3.0
+langchain-google-genai>=0.0.9
 
 # Embeddings and semantic search
 sentence-transformers>=2.2.0
