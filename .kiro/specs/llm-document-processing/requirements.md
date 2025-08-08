@@ -2,7 +2,9 @@
 
 ## Introduction
 
-The LLM Document Processing System is designed to process natural language queries and retrieve relevant information from large unstructured documents such as policy documents, contracts, and emails. The system leverages Large Language Models to understand queries semantically, search through documents intelligently, and provide structured decisions with clear justifications based on document clauses.
+The LLM-Powered Intelligent Query-Retrieval System is designed to process large documents and make contextual decisions for real-world scenarios in insurance, legal, HR, and compliance domains. The system handles PDF blob URLs from Azure storage, processes natural language queries, uses FAISS/Pinecone embeddings for semantic search, and provides explainable decision rationale with structured JSON responses. 
+
+The system implements the hackathon's 6-stage architecture: Input Documents → LLM Parser → Embedding Search → Clause Matching → Logic Evaluation → JSON Output. It is optimized for the five key evaluation criteria: accuracy (precise query understanding and clause matching), token efficiency (optimized LLM usage), latency (real-time performance), reusability (modular architecture), and explainability (clear decision reasoning with clause traceability).
 
 ## Requirements
 
@@ -19,15 +21,17 @@ The LLM Document Processing System is designed to process natural language queri
 
 ### Requirement 2
 
-**User Story:** As a system administrator, I want to upload various document formats, so that the system can process different types of policy documents and contracts.
+**User Story:** As a system administrator, I want to process documents from blob URLs and various formats, so that the system can handle real-world document sources efficiently.
 
 #### Acceptance Criteria
 
-1. WHEN a user uploads a PDF document THEN the system SHALL extract and process the text content
-2. WHEN a user uploads a Word document THEN the system SHALL extract and process the text content
-3. WHEN a user uploads email files THEN the system SHALL extract and process the text content
-4. WHEN document processing fails THEN the system SHALL return an error message with details about the failure
-5. WHEN documents are successfully processed THEN the system SHALL store them in a searchable format
+1. WHEN a user provides a PDF blob URL from Azure storage THEN the system SHALL download and process the document content
+2. WHEN a user uploads a PDF document THEN the system SHALL extract and process the text content
+3. WHEN a user uploads a Word document THEN the system SHALL extract and process the text content
+4. WHEN a user uploads email files THEN the system SHALL extract and process the text content
+5. WHEN document processing fails THEN the system SHALL return an error message with details about the failure
+6. WHEN documents are successfully processed THEN the system SHALL store them in a searchable format with FAISS/Pinecone embeddings
+7. WHEN processing documents THEN the system SHALL support the hackathon's /hackrx/run API endpoint format
 
 ### Requirement 3
 

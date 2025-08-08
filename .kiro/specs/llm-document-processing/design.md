@@ -2,13 +2,15 @@
 
 ## Overview
 
-The LLM Document Processing System is designed as a modular, scalable architecture that processes natural language queries against large unstructured documents. The system builds upon the existing insurance claim processor architecture, extending it to handle broader document types and use cases while maintaining the core semantic search and decision-making capabilities.
+The LLM-Powered Intelligent Query-Retrieval System is designed as a modular, scalable architecture that processes natural language queries against large unstructured documents for insurance, legal, HR, and compliance domains. The system handles PDF blob URLs, implements FAISS/Pinecone vector search, and provides explainable decisions optimized for accuracy, token efficiency, and low latency.
 
-The system follows a 4-stage pipeline:
-1. **Query Processing** - Parse and structure natural language input
-2. **Document Ingestion** - Process and index various document formats
-3. **Semantic Retrieval** - Find relevant content using vector similarity
-4. **Decision Engine** - Apply business logic and generate structured responses
+The system follows the exact 6-stage pipeline required by the hackathon:
+1. **Input Documents** - Handle PDF blob URLs from Azure storage and document uploads
+2. **LLM Parser** - Extract structured query information from natural language
+3. **Embedding Search** - FAISS/Pinecone retrieval for semantic similarity matching
+4. **Clause Matching** - Semantic similarity scoring and relevance ranking
+5. **Logic Evaluation** - Decision processing with domain-specific business rules
+6. **JSON Output** - Structured response with explainable rationale and source traceability
 
 ## Architecture
 
@@ -453,5 +455,111 @@ services:
 - **Business Metrics**: Decision accuracy, user satisfaction
 - **Infrastructure Metrics**: Resource utilization, system health
 - **Distributed Tracing**: Request flow across microservices
+
+## Hackathon API Specification
+
+### Required API Endpoint
+
+The system must implement the hackathon-specific API endpoint:
+
+**Endpoint**: `POST /hackrx/run`
+**Authentication**: Bearer token authentication
+**Content-Type**: `application/json`
+
+### Request Format
+
+```json
+{
+    "documents": "https://hackrx.blob.core.windows.net/assets/policy.pdf?sv=...",
+    "questions": [
+        "What is the grace period for premium payment?",
+        "What is the waiting period for pre-existing diseases?",
+        "Does this policy cover maternity expenses?"
+    ]
+}
+```
+
+### Response Format
+
+```json
+{
+    "answers": [
+        "A grace period of thirty days is provided for premium payment...",
+        "There is a waiting period of thirty-six (36) months...",
+        "Yes, the policy covers maternity expenses..."
+    ]
+}
+```
+
+### Technical Requirements
+
+- **Vector Database**: FAISS or Pinecone for semantic search
+- **LLM Integration**: GPT-4 or equivalent for query processing
+- **Document Processing**: Support for PDF blob URLs with automatic download
+- **Response Time**: Optimized for low latency processing
+- **Token Efficiency**: Minimize LLM token usage for cost-effectiveness
+
+### Evaluation Criteria Integration
+
+The system design addresses all hackathon evaluation parameters:
+
+1. **Accuracy**: Precise query understanding and clause matching through semantic search
+2. **Token Efficiency**: Optimized LLM prompts and selective content retrieval
+3. **Latency**: Efficient indexing, caching, and parallel processing
+4. **Reusability**: Modular architecture supporting multiple domains
+5. **Explainability**: Clear decision reasoning with source clause traceability
+
+## Hackathon API Specification
+
+### Required API Endpoint
+
+The system must implement the hackathon-specific API endpoint:
+
+**Endpoint**: `POST /hackrx/run`
+**Authentication**: Bearer token authentication
+**Content-Type**: `application/json`
+
+### Request Format
+
+```json
+{
+    "documents": "https://hackrx.blob.core.windows.net/assets/policy.pdf?sv=...",
+    "questions": [
+        "What is the grace period for premium payment?",
+        "What is the waiting period for pre-existing diseases?",
+        "Does this policy cover maternity expenses?"
+    ]
+}
+```
+
+### Response Format
+
+```json
+{
+    "answers": [
+        "A grace period of thirty days is provided for premium payment...",
+        "There is a waiting period of thirty-six (36) months...",
+        "Yes, the policy covers maternity expenses..."
+    ]
+}
+```
+
+### Technical Requirements
+
+- **Vector Database**: FAISS or Pinecone for semantic search
+- **LLM Integration**: GPT-4 or equivalent for query processing
+- **Document Processing**: Support for PDF blob URLs with automatic download
+- **Response Time**: Optimized for low latency processing
+- **Token Efficiency**: Minimize LLM token usage for cost-effectiveness
+
+### Evaluation Criteria Integration
+
+The system design addresses all hackathon evaluation parameters:
+
+1. **Accuracy**: Precise query understanding and clause matching through semantic search
+2. **Token Efficiency**: Optimized LLM prompts and selective content retrieval
+3. **Latency**: Efficient indexing, caching, and parallel processing
+4. **Reusability**: Modular architecture supporting multiple domains
+5. **Explainability**: Clear decision reasoning with source clause traceability
 
 This design provides a robust, scalable foundation for the LLM Document Processing System while building on the existing insurance claim processor architecture. The modular design allows for easy extension to new domains and document types while maintaining high performance and reliability.
