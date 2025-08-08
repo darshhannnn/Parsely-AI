@@ -5,8 +5,8 @@ Gemini API Configuration and Integration
 import os
 from typing import Optional
 import google.generativeai as genai
-from langchain_google_genai import ChatGoogleGenerativeAI
 from loguru import logger
+from typing import Any
 
 class GeminiConfig:
     """Configuration class for Google Gemini API integration"""
@@ -17,14 +17,18 @@ class GeminiConfig:
         self.temperature = float(os.getenv("LLM_TEMPERATURE", "0.1"))
         self.max_tokens = int(os.getenv("MAX_TOKENS", "4000"))
         
-        if not self.api_key:
-            raise ValueError("GOOGLE_API_KEY environment variable is required")
+        # Configure the Gemini client only if API key is present
+        if self.api_key:
+            genai.configure(api_key=self.api_key)
+        else:
+            logger.warning("GOOGLE_API_KEY not set; Gemini features will be disabled")
         
-        # Configure the Gemini client
-        genai.configure(api_key=self.api_key)
-        
-    def get_llm_client(self) -> ChatGoogleGenerativeAI:
+    def get_llm_client(self) -> Any:
         """Get configured Gemini LLM client for LangChain"""
+        if not self.api_key:
+            raise RuntimeError("GOOGLE_API_KEY not configured")
+        # Lazy import to avoid hard dependency at module import time
+        from langchain_google_genai import ChatGoogleGenerativeAI  # type: ignore
         return ChatGoogleGenerativeAI(
             model=self.model_name,
             google_api_key=self.api_key,
@@ -33,8 +37,10 @@ class GeminiConfig:
             convert_system_message_to_human=True
         )
     
-    def get_native_client(self):
+    def get_native_client(self) -> Optional[genai.GenerativeModel]:
         """Get native Gemini client for direct API calls"""
+        if not self.api_key:
+            raise RuntimeError("GOOGLE_API_KEY not configured")
         return genai.GenerativeModel(self.model_name)
     
     def test_connection(self) -> bool:
