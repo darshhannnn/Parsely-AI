@@ -3,29 +3,45 @@ Hackathon API endpoint for LLM-Powered Intelligent Query-Retrieval System
 Implements the required /hackrx/run endpoint with bearer token authentication
 """
 import os
-from fastapi import HTTPException, status, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
-security = HTTPBearer()
-# Expected bearer token from environment (no hardcoded fallback)
-EXPECTED_TOKEN = os.getenv("HACKATHON_API_TOKEN", "")
-# Read model configuration from environment
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.0-flash")
-
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
-import os
-import requests
 import tempfile
 import logging
 from datetime import datetime
+from typing import List, Dict, Any, Optional
+
+import requests
+from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field, validator
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Security configuration
+security = HTTPBearer()
+
+# Environment configuration
+EXPECTED_TOKEN = os.getenv("HACKATHON_API_TOKEN")
+if not EXPECTED_TOKEN:
+    logger.warning("HACKATHON_API_TOKEN not set - authentication will fail")
+
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+if not GOOGLE_API_KEY:
+    logger.warning("GOOGLE_API_KEY not set - document processing will fail")
+
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.0-flash")
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title="LLM Document Processing - Hackathon API",
@@ -33,13 +49,44 @@ app = FastAPI(
     version="1.0"
 )
 
+# Add rate limiter middleware
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Customize this based on your requirements
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Security scheme for bearer token (already defined above)
 security = HTTPBearer()
 
 class HackathonRequest(BaseModel):
     """Request model matching hackathon specification"""
-    documents: str = Field(..., description="PDF blob URL from Azure storage")
-    questions: List[str] = Field(..., description="List of natural language questions")
+    documents: str = Field(
+        ..., 
+        description="PDF blob URL from Azure storage",
+        regex="^https?://[^/]+\\.blob\\.core\\.windows\\.net/.+\\.pdf$"
+    )
+    questions: List[str] = Field(
+        ..., 
+        description="List of natural language questions",
+        min_items=1,
+        max_items=10
+    )
+    
+    @validator('questions')
+    def validate_questions(cls, questions):
+        for question in questions:
+            if not question.strip():
+                raise ValueError("Questions cannot be empty")
+            if len(question) > 500:
+                raise ValueError("Question too long (max 500 characters)")
+        return [q.strip() for q in questions]
 
 class HackathonResponse(BaseModel):
     """Response model matching hackathon specification"""
@@ -56,16 +103,16 @@ def verify_bearer_token(credentials: HTTPAuthorizationCredentials = Depends(secu
     # Basic trace without leaking secrets
     logger.info(
         "Auth check: token provided=%s, expected_token_set=%s",
-        bool(credentials and credentials.token),
+        bool(credentials and credentials.credentials),
         bool(EXPECTED_TOKEN),
     )
-    if credentials.token != EXPECTED_TOKEN:
+    if credentials.credentials != EXPECTED_TOKEN:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid bearer token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return credentials.token
+    return credentials.credentials
 
 def download_pdf_from_blob_url(blob_url: str) -> str:
     """Download PDF from Azure blob URL and return local file path"""
@@ -101,6 +148,16 @@ def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[
     """
     Process PDF document and answer questions using the complete 6-stage pipeline.
     
+    Args:
+        pdf_path: Path to the downloaded PDF file
+        questions: List of questions to answer
+        
+    Returns:
+        List[str]: Answers to the provided questions
+        
+    Raises:
+        HTTPException: If processing fails at any stage
+        
     Stages:
     1. Input Documents - PDF already downloaded
     2. LLM Parser - Parse each question 
@@ -136,8 +193,32 @@ def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[
         try:
             with open(pdf_path, 'rb') as file:
                 pdf_reader = PyPDF2.PdfReader(file)
+                
+                # First try: Standard text extraction
                 for page in pdf_reader.pages:
-                    document_text += page.extract_text() + "\n"
+                    text = page.extract_text()
+                    if text:
+                        document_text += text + "\n"
+                
+                # If no text was extracted, try OCR fallback
+                if not document_text.strip():
+                    logger.info("No text extracted, attempting OCR fallback...")
+                    try:
+                        import pytesseract
+                        from pdf2image import convert_from_path
+                        from PIL import Image
+                        
+                        # Convert PDF to images
+                        images = convert_from_path(pdf_path)
+                        for image in images:
+                            text = pytesseract.image_to_string(image)
+                            if text:
+                                document_text += text + "\n"
+                    except ImportError:
+                        logger.warning("OCR dependencies not available")
+                    except Exception as ocr_error:
+                        logger.error(f"OCR fallback failed: {str(ocr_error)}")
+                        
         except Exception as e:
             logger.error(f"Error extracting PDF text: {str(e)}")
             # Fallback to a generic response
@@ -156,13 +237,27 @@ def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[
         
         # Split document into chunks for better semantic search
         chunks = []
-        chunk_size = 500  # characters per chunk
-        overlap = 100     # overlap between chunks
+        chunk_size = 1000  # characters per chunk (increased for better context)
+        overlap = 200      # overlap between chunks (increased for better continuity)
         
-        for i in range(0, len(document_text), chunk_size - overlap):
-            chunk = document_text[i:i + chunk_size]
-            if chunk.strip():
-                chunks.append(chunk.strip())
+        # Split by paragraphs first
+        paragraphs = [p.strip() for p in document_text.split('\n\n') if p.strip()]
+        
+        current_chunk = []
+        current_size = 0
+        
+        for paragraph in paragraphs:
+            if current_size + len(paragraph) > chunk_size:
+                if current_chunk:
+                    chunks.append(' '.join(current_chunk))
+                current_chunk = [paragraph]
+                current_size = len(paragraph)
+            else:
+                current_chunk.append(paragraph)
+                current_size += len(paragraph)
+        
+        if current_chunk:
+            chunks.append(' '.join(current_chunk))
         
         if not chunks:
             return ["Document could not be processed into searchable chunks" for _ in questions]
@@ -195,18 +290,24 @@ def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[
                 context = "\n\n".join(relevant_chunks)
                 
                 prompt = f"""
-Based on the following document content, please answer the question accurately and concisely.
+You are an expert insurance document analyzer. Based on the provided document content, please answer the question accurately and professionally.
 
 Document Content:
 {context}
 
 Question: {question}
 
-Instructions:
-- Provide a direct, factual answer based only on the document content
-- If the information is not available in the document, state that clearly
-- Keep the answer concise but complete
-- Include specific details like numbers, timeframes, or conditions when available
+Instructions for analysis:
+1. Focus only on information present in the provided document content
+2. If information is not available, clearly state: "Based on the provided document content, this information is not available."
+3. Be precise with policy terms, conditions, numbers, and dates
+4. For coverage-related questions, include relevant:
+   - Coverage limits
+   - Exclusions
+   - Waiting periods
+   - Special conditions
+5. Format monetary values and percentages clearly
+6. Keep the answer professional and factual
 
 Answer:"""
 
@@ -234,7 +335,14 @@ Answer:"""
             detail=f"Error processing document and questions: {str(e)}"
         )
 
-@app.post("/hackrx/run", response_model=HackathonResponse, summary="Process document and answer questions")
+@app.post("/hackrx/run", response_model=HackathonResponse, 
+         summary="Process document and answer questions",
+         responses={
+             200: {"description": "Successfully processed document and generated answers"},
+             400: {"description": "Invalid request or unable to process document"},
+             401: {"description": "Invalid or missing authentication token"},
+             500: {"description": "Internal server error or processing failure"}
+         })
 async def hackrx_run(
     request: HackathonRequest,
     token: str = Depends(verify_bearer_token)
