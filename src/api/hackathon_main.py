@@ -2,6 +2,15 @@
 Hackathon API endpoint for LLM-Powered Intelligent Query-Retrieval System
 Implements the required /hackrx/run endpoint with bearer token authentication
 """
+import os
+from fastapi import HTTPException, status, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+security = HTTPBearer()
+EXPECTED_TOKEN = os.environ.get("HACKATHON_API_TOKEN") or ""
+# Read model configuration from environment
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY") or ""
+LLM_MODEL = os.environ.get("LLM_MODEL", "gemini-2.0-flash-exp")
 
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -40,7 +49,12 @@ class HackathonResponse(BaseModel):
     answers: List[str] = Field(..., description="List of answers corresponding to questions")
 
 def verify_bearer_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Verify bearer token authentication"""
+    # Ensure server is configured correctly
+    if not EXPECTED_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Server auth not configured: missing HACKATHON_API_TOKEN",
+        )
     if credentials.token != EXPECTED_TOKEN:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -97,6 +111,15 @@ def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[
         from ..query_parsing.gemini_query_parser import GeminiQueryParser
         from sentence_transformers import SentenceTransformer
         import google.generativeai as genai
+        # Configure Gemini client
+        if not GOOGLE_API_KEY:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="GOOGLE_API_KEY not configured",
+            )
+        genai.configure(api_key=GOOGLE_API_KEY)
+        model = genai.GenerativeModel(LLM_MODEL)
+        
         import PyPDF2
         import numpy as np
         from sklearn.metrics.pairwise import cosine_similarity
