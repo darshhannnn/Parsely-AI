@@ -7,13 +7,13 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer()
-EXPECTED_TOKEN = os.environ.get("HACKATHON_API_TOKEN") or ""
+# Expected bearer token from environment (no hardcoded fallback)
+EXPECTED_TOKEN = os.getenv("HACKATHON_API_TOKEN", "")
 # Read model configuration from environment
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY") or ""
-LLM_MODEL = os.environ.get("LLM_MODEL", "gemini-2.0-flash-exp")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.0-flash")
 
-from fastapi import FastAPI, HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
@@ -33,11 +33,8 @@ app = FastAPI(
     version="1.0"
 )
 
-# Security scheme for bearer token
+# Security scheme for bearer token (already defined above)
 security = HTTPBearer()
-
-# Expected bearer token from environment or default
-EXPECTED_TOKEN = os.getenv("HACKATHON_API_TOKEN", "8e6a11e26a0e51d768ce7fb55743017cb25ee7c6891e15c4ab2f1bf971bf9d63")
 
 class HackathonRequest(BaseModel):
     """Request model matching hackathon specification"""
@@ -111,7 +108,7 @@ def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[
         from ..query_parsing.gemini_query_parser import GeminiQueryParser
         from sentence_transformers import SentenceTransformer
         import google.generativeai as genai
-        # Configure Gemini client
+        # Configure Gemini client once
         if not GOOGLE_API_KEY:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -165,10 +162,6 @@ def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[
         
         # Create embeddings for all chunks
         chunk_embeddings = embedding_model.encode(chunks)
-        
-        # Configure Gemini
-        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-        model = genai.GenerativeModel(os.getenv("LLM_MODEL", "gemini-2.0-flash-exp"))
         
         answers = []
         
