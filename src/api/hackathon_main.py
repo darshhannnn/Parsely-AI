@@ -48,10 +48,17 @@ class HackathonResponse(BaseModel):
 def verify_bearer_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     # Ensure server is configured correctly
     if not EXPECTED_TOKEN:
+        logger.error("Auth not configured: HACKATHON_API_TOKEN missing")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Server auth not configured: missing HACKATHON_API_TOKEN",
         )
+    # Basic trace without leaking secrets
+    logger.info(
+        "Auth check: token provided=%s, expected_token_set=%s",
+        bool(credentials and credentials.token),
+        bool(EXPECTED_TOKEN),
+    )
     if credentials.token != EXPECTED_TOKEN:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
