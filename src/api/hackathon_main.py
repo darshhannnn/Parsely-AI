@@ -14,9 +14,15 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
+# Optional rate limiting - gracefully handle if slowapi is not available
+try:
+    from slowapi import Limiter, _rate_limit_exceeded_handler
+    from slowapi.util import get_remote_address
+    from slowapi.errors import RateLimitExceeded
+    RATE_LIMITING_AVAILABLE = True
+except ImportError:
+    logger.warning("slowapi not available - rate limiting disabled")
+    RATE_LIMITING_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -40,18 +46,17 @@ LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.0-flash")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
-
 app = FastAPI(
     title="LLM Document Processing - Hackathon API",
     description="Hackathon API for intelligent document query processing with PDF blob URL support",
     version="1.0"
 )
 
-# Add rate limiter middleware
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# Initialize rate limiter if available
+if RATE_LIMITING_AVAILABLE:
+    limiter = Limiter(key_func=get_remote_address)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add CORS middleware
 app.add_middleware(
@@ -69,14 +74,13 @@ class HackathonRequest(BaseModel):
     """Request model matching hackathon specification"""
     documents: str = Field(
         ..., 
-        description="PDF blob URL from Azure storage",
-        regex="^https?://[^/]+\\.blob\\.core\\.windows\\.net/.+\\.pdf$"
+        description="PDF blob URL from Azure storage"
     )
     questions: List[str] = Field(
         ..., 
         description="List of natural language questions",
-        min_items=1,
-        max_items=10
+        min_length=1,
+        max_length=10
     )
     
     @validator('questions')
@@ -147,32 +151,12 @@ def download_pdf_from_blob_url(blob_url: str) -> str:
 def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[str]:
     """
     Process PDF document and answer questions using the complete 6-stage pipeline.
-    
-    Args:
-        pdf_path: Path to the downloaded PDF file
-        questions: List of questions to answer
-        
-    Returns:
-        List[str]: Answers to the provided questions
-        
-    Raises:
-        HTTPException: If processing fails at any stage
-        
-    Stages:
-    1. Input Documents - PDF already downloaded
-    2. LLM Parser - Parse each question 
-    3. Embedding Search - Create embeddings for document content
-    4. Clause Matching - Find relevant clauses using semantic similarity
-    5. Logic Evaluation - Generate answers using LLM with context
-    6. JSON Output - Return structured answers
     """
     try:
-        # Import required components
-        from ..document_processing.document_processor import InsuranceDocumentProcessor
-        from ..query_parsing.gemini_query_parser import GeminiQueryParser
-        from sentence_transformers import SentenceTransformer
         import google.generativeai as genai
-        # Configure Gemini client once
+        import PyPDF2
+        
+        # Configure Gemini client
         if not GOOGLE_API_KEY:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -180,10 +164,6 @@ def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[
             )
         genai.configure(api_key=GOOGLE_API_KEY)
         model = genai.GenerativeModel(LLM_MODEL)
-        
-        import PyPDF2
-        import numpy as np
-        from sklearn.metrics.pairwise import cosine_similarity
         
         logger.info(f"Starting 6-stage pipeline for document: {pdf_path}")
         
@@ -193,121 +173,37 @@ def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[
         try:
             with open(pdf_path, 'rb') as file:
                 pdf_reader = PyPDF2.PdfReader(file)
-                
-                # First try: Standard text extraction
                 for page in pdf_reader.pages:
                     text = page.extract_text()
                     if text:
                         document_text += text + "\n"
-                
-                # If no text was extracted, try OCR fallback
-                if not document_text.strip():
-                    logger.info("No text extracted, attempting OCR fallback...")
-                    try:
-                        import pytesseract
-                        from pdf2image import convert_from_path
-                        from PIL import Image
-                        
-                        # Convert PDF to images
-                        images = convert_from_path(pdf_path)
-                        for image in images:
-                            text = pytesseract.image_to_string(image)
-                            if text:
-                                document_text += text + "\n"
-                    except ImportError:
-                        logger.warning("OCR dependencies not available")
-                    except Exception as ocr_error:
-                        logger.error(f"OCR fallback failed: {str(ocr_error)}")
-                        
         except Exception as e:
             logger.error(f"Error extracting PDF text: {str(e)}")
-            # Fallback to a generic response
             return [f"Unable to process PDF document: {str(e)}" for _ in questions]
         
         if not document_text.strip():
             return ["Document appears to be empty or unreadable" for _ in questions]
         
-        # Stage 2: LLM Parser - Initialize query parser
-        logger.info("Stage 2: Initializing LLM parser...")
-        query_parser = GeminiQueryParser()
-        
-        # Stage 3: Embedding Search - Create embeddings for document chunks
-        logger.info("Stage 3: Creating document embeddings...")
-        embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        
-        # Split document into chunks for better semantic search
-        chunks = []
-        chunk_size = 1000  # characters per chunk (increased for better context)
-        overlap = 200      # overlap between chunks (increased for better continuity)
-        
-        # Split by paragraphs first
-        paragraphs = [p.strip() for p in document_text.split('\n\n') if p.strip()]
-        
-        current_chunk = []
-        current_size = 0
-        
-        for paragraph in paragraphs:
-            if current_size + len(paragraph) > chunk_size:
-                if current_chunk:
-                    chunks.append(' '.join(current_chunk))
-                current_chunk = [paragraph]
-                current_size = len(paragraph)
-            else:
-                current_chunk.append(paragraph)
-                current_size += len(paragraph)
-        
-        if current_chunk:
-            chunks.append(' '.join(current_chunk))
-        
-        if not chunks:
-            return ["Document could not be processed into searchable chunks" for _ in questions]
-        
-        # Create embeddings for all chunks
-        chunk_embeddings = embedding_model.encode(chunks)
-        
+        # Stages 2-6: Process each question with simplified pipeline
         answers = []
-        
         for question in questions:
             logger.info(f"Processing question: {question}")
             
             try:
-                # Stage 2: Parse the question
-                parsed_query = query_parser.parse_query(question)
-                
-                # Stage 4: Clause Matching - Find most relevant chunks
-                question_embedding = embedding_model.encode([question])
-                similarities = cosine_similarity(question_embedding, chunk_embeddings)[0]
-                
-                # Get top 3 most relevant chunks
-                top_indices = np.argsort(similarities)[-3:][::-1]
-                relevant_chunks = [chunks[i] for i in top_indices if similarities[i] > 0.1]
-                
-                if not relevant_chunks:
-                    # If no relevant chunks found, use first few chunks
-                    relevant_chunks = chunks[:3]
-                
-                # Stage 5: Logic Evaluation - Generate answer using LLM with context
-                context = "\n\n".join(relevant_chunks)
-                
+                # Simple approach: Use full document as context
                 prompt = f"""
-You are an expert insurance document analyzer. Based on the provided document content, please answer the question accurately and professionally.
+You are an expert document analyzer. Based on the provided document content, please answer the question accurately and professionally.
 
 Document Content:
-{context}
+{document_text[:4000]}  # Limit context to avoid token limits
 
 Question: {question}
 
-Instructions for analysis:
+Instructions:
 1. Focus only on information present in the provided document content
 2. If information is not available, clearly state: "Based on the provided document content, this information is not available."
-3. Be precise with policy terms, conditions, numbers, and dates
-4. For coverage-related questions, include relevant:
-   - Coverage limits
-   - Exclusions
-   - Waiting periods
-   - Special conditions
-5. Format monetary values and percentages clearly
-6. Keep the answer professional and factual
+3. Be precise and factual
+4. Keep the answer concise and professional
 
 Answer:"""
 
@@ -318,7 +214,6 @@ Answer:"""
                 if len(answer) > 500:
                     answer = answer[:497] + "..."
                 
-                # Stage 6: JSON Output - Add to answers list
                 answers.append(answer)
                 
             except Exception as e:

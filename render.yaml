@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: hackathon-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn src.api.hackathon_main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: HACKATHON_API_TOKEN
+        sync: false
+      - key: LLM_MODEL
+        value: gemini-1.5-flash
+      - key: PYTHONPATH
+        value: /opt/render/project/src
