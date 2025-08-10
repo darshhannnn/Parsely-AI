@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuration
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://parsely-ai-production-f2ad.up.railway.app"
 BEARER_TOKEN = os.getenv("HACKATHON_API_TOKEN", "8e6a11e26a0e51d768ce7fb55743017cb25ee7c6891e15c4ab2f1bf971bf9d63")
 
 def print_section(title):

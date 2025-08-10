@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Document Processing - Test Interface</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 15px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header { 
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white; 
+            padding: 30px; 
+            text-align: center; 
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .content { padding: 30px; }
+        .section { 
+            background: #f8f9fa; 
+            padding: 25px; 
+            border-radius: 10px; 
+            margin: 20px 0; 
+            border-left: 5px solid #4facfe;
+        }
+        .section h3 { color: #333; margin-bottom: 15px; font-size: 1.3em; }
+        .form-group { margin: 15px 0; }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            color: #555;
+        }
+        .form-group input, .form-group textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #e1e5e9; 
+            border-radius: 8px; 
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group textarea:focus { 
+            outline: none; 
+            border-color: #4facfe; 
+        }
+        .btn { 
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white; 
+            padding: 12px 25px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+            margin: 5px;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled { 
+            background: #ccc; 
+            cursor: not-allowed; 
+            transform: none;
+        }
+        .result { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border-radius: 8px; 
+            border-left: 5px solid #28a745;
+        }
+        .result.success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .result.error { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .result.info { background: #d1ecf1; border-color: #17a2b8; color: #0c5460; }
+        .loading { 
+            display: none; 
+            text-align: center; 
+            padding: 20px;
+        }
+        .spinner { 
+            border: 4px solid #f3f3f3; 
+            border-top: 4px solid #4facfe; 
+            border-radius: 50%; 
+            width: 40px; 
+            height: 40px; 
+            animation: spin 1s linear infinite; 
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .api-info { 
+            background: #e3f2fd; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .sample-pdfs { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            margin: 10px 0;
+        }
+        .sample-pdf { 
+            background: #e9ecef; 
+            padding: 8px 12px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        .sample-pdf:hover { background: #dee2e6; }
+        pre { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 5px; 
+            overflow-x: auto; 
+            white-space: pre-wrap;
+            font-size: 13px;
+        }
+        .status-indicator { 
+            display: inline-block; 
+            width: 10px; 
+            height: 10px; 
+            border-radius: 50%; 
+            margin-right: 8px;
+        }
+        .status-online { background: #28a745; }
+        .status-offline { background: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 LLM Document Processing</h1>
+            <p>Hackathon API - 6-Stage Intelligent Pipeline</p>
+            <div id="apiStatus" style="margin-top: 15px;">
+                <span class="status-indicator status-offline"></span>
+                <span>Checking API status...</span>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- API Information -->
+            <div class="section">
+                <h3>📋 API Information</h3>
+                <div class="api-info">
+                    <strong>Base URL:</strong> https://parsely-ai-production-f2ad.up.railway.app<br>
+                    <strong>Webhook:</strong> https://parsely-ai-production-f2ad.up.railway.app/hackrx/run<br>
+                    <strong>Method:</strong> POST<br>
+                    <strong>Auth:</strong> Bearer Token Required
+                </div>
+                <button class="btn" onclick="checkApiStatus()">🔄 Check API Status</button>
+                <button class="btn" onclick="window.open('https://parsely-ai-production-f2ad.up.railway.app/docs', '_blank')">📚 View API Docs</button>
+            </div>
+
+            <!-- PDF Testing Interface -->
+            <div class="section">
+                <h3>📄 Test PDF Processing</h3>
+                
+                <div class="form-group">
+                    <label>PDF URL (must be publicly accessible):</label>
+                    <input type="url" id="pdfUrl" placeholder="https://example.com/document.pdf" 
+                           value="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf">
+                    
+                    <div class="sample-pdfs">
+                        <div class="sample-pdf" onclick="setPdfUrl('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf')">
+                            📄 Sample PDF 1
+                        </div>
+                        <div class="sample-pdf" onclick="setPdfUrl('https://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf')">
+                            📄 Sample PDF 2
+                        </div>
+                        <div class="sample-pdf" onclick="setPdfUrl('https://file-examples.com/storage/fe86c96f4d1e8b58f5d4e5c/2017/10/file-sample_150kB.pdf')">
+                            📄 Sample PDF 3
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Questions (one per line):</label>
+                    <textarea id="questions" rows="4" placeholder="What is this document about?&#10;What are the main topics covered?&#10;Who is the target audience?">What is this document about?
+What type of document is this?
+What are the key points mentioned?</textarea>
+                </div>
+
+                <button class="btn" onclick="testPdfProcessing()">🔍 Process Document</button>
+                <button class="btn" onclick="clearResults()">🗑️ Clear Results</button>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p>Processing document through 6-stage pipeline...</p>
+                <small>This may take a few seconds</small>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results"></div>
+
+            <!-- Pipeline Information -->
+            <div class="section">
+                <h3>⚙️ 6-Stage Processing Pipeline</h3>
+                <ol style="padding-left: 20px; line-height: 1.8;">
+                    <li><strong>Input Documents</strong> - Download and validate PDF from blob URL</li>
+                    <li><strong>LLM Parser</strong> - Parse and understand question context</li>
+                    <li><strong>Embedding Search</strong> - Create semantic embeddings for document content</li>
+                    <li><strong>Clause Matching</strong> - Find relevant sections using similarity scoring</li>
+                    <li><strong>Logic Evaluation</strong> - Generate intelligent answers using LLM</li>
+                    <li><strong>JSON Output</strong> - Return structured response with answers</li>
+                </ol>
+            </div>
+
+            <!-- Authentication Testing -->
+            <div class="section">
+                <h3>🔐 Authentication Testing</h3>
+                <button class="btn" onclick="testAuthentication()">Test Auth Requirements</button>
+                <div id="authResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://parsely-ai-production-f2ad.up.railway.app';
+        const BEARER_TOKEN = '8e6a11e26a0e51d768ce7fb55743017cb25ee7c6891e15c4ab2f1bf971bf9d63';
+
+        // Check API status on page load
+        window.onload = function() {
+            checkApiStatus();
+        };
+
+        function setPdfUrl(url) {
+            document.getElementById('pdfUrl').value = url;
+        }
+
+        async function checkApiStatus() {
+            const statusDiv = document.getElementById('apiStatus');
+            statusDiv.innerHTML = '<span class="status-indicator status-offline"></span><span>Checking...</span>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = `
+                        <span class="status-indicator status-online"></span>
+                        <span>API Online - ${data.service}</span>
+                    `;
+                    showResult('success', 'API Status Check', `
+                        <strong>✅ API is online and ready!</strong><br>
+                        Service: ${data.service}<br>
+                        Version: ${data.version}<br>
+                        Pipeline Stages: ${data.pipeline_stages ? data.pipeline_stages.length : 'N/A'}
+                    `);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<span class="status-indicator status-offline"></span><span>API Offline</span>';
+                showResult('error', 'API Status Check', `❌ API is not responding: ${error.message}`);
+            }
+        }
+
+        async function testPdfProcessing() {
+            const pdfUrl = document.getElementById('pdfUrl').value.trim();
+            const questionsText = document.getElementById('questions').value.trim();
+            
+            if (!pdfUrl || !questionsText) {
+                showResult('error', 'Validation Error', '❌ Please provide both PDF URL and questions');
+                return;
+            }
+
+            const questions = questionsText.split('\n').filter(q => q.trim()).map(q => q.trim());
+            
+            if (questions.length === 0) {
+                showResult('error', 'Validation Error', '❌ Please provide at least one question');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingIndicator').style.display = 'block';
+            
+            const payload = {
+                documents: pdfUrl,
+                questions: questions
+            };
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${API_BASE}/hackrx/run`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${BEARER_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const endTime = Date.now();
+                const processingTime = ((endTime - startTime) / 1000).toFixed(2);
+                const data = await response.json();
+
+                // Hide loading
+                document.getElementById('loadingIndicator').style.display = 'none';
+
+                if (response.ok) {
+                    let resultHtml = `
+                        <strong>✅ Document processed successfully!</strong><br>
+                        <strong>Processing Time:</strong> ${processingTime} seconds<br>
+                        <strong>Questions:</strong> ${questions.length}<br>
+                        <strong>Answers:</strong> ${data.answers ? data.answers.length : 0}<br><br>
+                    `;
+
+                    if (data.answers && data.answers.length > 0) {
+                        resultHtml += '<strong>📝 Results:</strong><br>';
+                        data.answers.forEach((answer, index) => {
+                            resultHtml += `
+                                <div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                                    <strong>Q${index + 1}:</strong> ${questions[index]}<br>
+                                    <strong>A${index + 1}:</strong> ${answer}
+                                </div>
+                            `;
+                        });
+                    }
+
+                    showResult('success', 'PDF Processing Result', resultHtml);
+                } else {
+                    showResult('error', 'Processing Error', `
+                        ❌ Processing failed (HTTP ${response.status})<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `);
+                }
+            } catch (error) {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                showResult('error', 'Network Error', `❌ Request failed: ${error.message}`);
+            }
+        }
+
+        async function testAuthentication() {
+            const authDiv = document.getElementById('authResults');
+            authDiv.innerHTML = '<p>Testing authentication...</p>';
+
+            const testPayload = {
+                documents: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+                questions: ["Test question"]
+            };
+
+            try {
+                // Test without authentication
+                const response = await fetch(`${API_BASE}/hackrx/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testPayload)
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    authDiv.innerHTML = `
+                        <div class="result success">
+                            <strong>✅ Authentication Test Passed</strong><br>
+                            API correctly rejected request without authentication (Status: ${response.status})
+                        </div>
+                    `;
+                } else {
+                    authDiv.innerHTML = `
+                        <div class="result error">
+                            <strong>❌ Authentication Test Failed</strong><br>
+                            Expected 401/403 but got: ${response.status}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                authDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Authentication Test Error</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function showResult(type, title, content) {
+            const resultsDiv = document.getElementById('results');
+            const resultHtml = `
+                <div class="result ${type}">
+                    <h4>${title}</h4>
+                    <div>${content}</div>
+                    <small>Timestamp: ${new Date().toLocaleString()}</small>
+                </div>
+            `;
+            resultsDiv.innerHTML = resultHtml + resultsDiv.innerHTML;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('authResults').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
