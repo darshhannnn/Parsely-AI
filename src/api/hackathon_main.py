@@ -323,4 +323,17 @@ def root():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    host = "0.0.0.0"
+    
+    logger.info(f"Starting Parsely AI Hackathon API on {host}:{port}")
+    logger.info(f"Health check: http://{host}:{port}/health")
+    logger.info(f"API docs: http://{host}:{port}/docs")
+    logger.info(f"Main endpoint: http://{host}:{port}/hackrx/run")
+    
+    uvicorn.run(
+        app, 
+        host=host, 
+        port=port,
+        log_level="info",
+        access_log=True
+    )

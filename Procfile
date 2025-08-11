@@ -1,1 +1,1 @@
-web: python run.py
+web: python src/api/hackathon_main.py

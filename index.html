@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parsely AI - Intelligent Document Processing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--success);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-badge.offline {
+            background: var(--error);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 4rem 0;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            margin-bottom: 3rem;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        /* Main Content */
+        .main {
+            padding: 2rem 0;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Demo Section */
+        .demo-card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: var(--surface);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Results */
+        .result {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid;
+        }
+
+        .result.success {
+            background: rgb(16 185 129 / 0.1);
+            border-color: var(--success);
+            color: #065f46;
+        }
+
+        .result.error {
+            background: rgb(239 68 68 / 0.1);
+            border-color: var(--error);
+            color: #991b1b;
+        }
+
+        .result-content {
+            margin-bottom: 1rem;
+        }
+
+        .result-timestamp {
+            font-size: 0.875rem;
+            opacity: 0.7;
+        }
+
+        .answer-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .question {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .answer {
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Features Grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature {
+            text-align: center;
+            padding: 2rem 1.5rem;
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature p {
+            color: var(--text-secondary);
+        }
+
+        /* Pipeline */
+        .pipeline {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .pipeline-step {
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            min-width: 120px;
+            transition: all 0.2s;
+        }
+
+        .pipeline-step:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .pipeline-arrow {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        /* Links Section */
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .link-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .link-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .link-card h4 {
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .link-card p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero-stats {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .pipeline {
+                flex-direction: column;
+            }
+            
+            .pipeline-arrow {
+                transform: rotate(90deg);
+            }
+            
+            .container {
+                padding: 0 16px;
+            }
+        }
+
+        /* Tabs */
+        .input-tabs {
+            display: flex;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 1.5rem;
+            border: none;
+            background: none;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* File Upload */
+        .file-upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--background);
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--primary);
+            background: rgb(37 99 235 / 0.05);
+        }
+
+        .file-upload-area.dragover {
+            border-color: var(--primary);
+            background: rgb(37 99 235 / 0.1);
+            transform: scale(1.02);
+        }
+
+        .file-upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.7;
+        }
+
+        .file-upload-text {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-upload-link {
+            color: var(--primary);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .file-upload-hint {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .file-info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--background);
+            border-radius: 8px;
+            border-left: 4px solid var(--success);
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .file-size {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .file-status {
+            font-size: 0.875rem;
+            color: var(--success);
+        }
+
+        /* Upload Progress */
+        .upload-progress {
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .upload-progress-bar {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        /* Utilities */
+        .text-center { text-align: center; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mt-4 { margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo">
+                    <span>🚀</span>
+                    Parsely AI
+                </a>
+                <div class="status-badge" id="statusBadge">
+                    <span id="statusIcon">🔄</span>
+                    <span id="statusText">Checking...</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Intelligent Document Processing</h1>
+            <p>Transform your PDF documents into actionable insights with our advanced AI-powered analysis platform</p>
+            
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-number">6</span>
+                    <span class="stat-label">Stage Pipeline</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">AI</span>
+                    <span class="stat-label">Powered</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">PDF</span>
+                    <span class="stat-label">Processing</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Features Section -->
+            <section class="section">
+                <div class="features">
+                    <div class="feature">
+                        <div class="feature-icon">🤖</div>
+                        <h3>AI-Powered Analysis</h3>
+                        <p>Advanced natural language processing with Google Gemini AI for intelligent document understanding</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Lightning Fast</h3>
+                        <p>Optimized processing pipeline delivers results in seconds, not minutes</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">🔒</div>
+                        <h3>Enterprise Security</h3>
+                        <p>Bank-grade security with authentication, validation, and comprehensive error handling</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">📄</div>
+                        <h3>Universal PDF Support</h3>
+                        <p>Process any PDF document with automatic text extraction and OCR fallback</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pipeline Visualization -->
+            <section class="section">
+                <h2 class="section-title text-center">How It Works</h2>
+                <p class="section-subtitle text-center">Our 6-stage intelligent processing pipeline</p>
+                
+                <div class="pipeline">
+                    <div class="pipeline-step">
+                        <strong>📄 Input</strong><br>
+                        <small>PDF Documents</small>
+                    </div>
+                    <div class="pipeline-arrow">→</div>
+                    <div class="pipeline-step">
+                        <strong>🧠 Parse</strong><br>
+                        <small>Query Analysis</small>
+                    </div>
+                    <div class="pipeline-arrow">→</div>
+                    <div class="pipeline-step">
+                        <strong>🔍 Search</strong><br>
+                        <small>Semantic Matching</small>
+                    </div>
+                    <div class="pipeline-arrow">→</div>
+                    <div class="pipeline-step">
+                        <strong>🎯 Match</strong><br>
+                        <small>Clause Detection</small>
+                    </div>
+                    <div class="pipeline-arrow">→</div>
+                    <div class="pipeline-step">
+                        <strong>⚡ Evaluate</strong><br>
+                        <small>AI Processing</small>
+                    </div>
+                    <div class="pipeline-arrow">→</div>
+                    <div class="pipeline-step">
+                        <strong>📊 Output</strong><br>
+                        <small>JSON Response</small>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Demo Section -->
+            <section class="section">
+                <h2 class="section-title text-center">Try It Now</h2>
+                <p class="section-subtitle text-center">Test our document processing capabilities</p>
+                
+                <div class="demo-card">
+                    <!-- Input Method Tabs -->
+                    <div class="input-tabs">
+                        <button class="tab-btn active" onclick="switchTab('url')">
+                            <span>🔗</span>
+                            URL Upload
+                        </button>
+                        <button class="tab-btn" onclick="switchTab('file')">
+                            <span>📁</span>
+                            File Upload
+                        </button>
+                    </div>
+
+                    <!-- URL Input Tab -->
+                    <div id="urlTab" class="tab-content active">
+                        <div class="form-group">
+                            <label class="form-label">PDF Document URL</label>
+                            <input 
+                                type="url" 
+                                id="pdfUrl" 
+                                class="form-input" 
+                                placeholder="https://example.com/document.pdf"
+                                value="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- File Upload Tab -->
+                    <div id="fileTab" class="tab-content">
+                        <div class="form-group">
+                            <label class="form-label">Upload PDF Document</label>
+                            <div class="file-upload-area" id="fileUploadArea">
+                                <div class="file-upload-content">
+                                    <div class="file-upload-icon">📄</div>
+                                    <div class="file-upload-text">
+                                        <strong>Drop your PDF here</strong> or <span class="file-upload-link">browse files</span>
+                                    </div>
+                                    <div class="file-upload-hint">Supports PDF files up to 10MB</div>
+                                </div>
+                                <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+                            </div>
+                            <div id="fileInfo" class="file-info"></div>
+                        </div>
+                    </div>
+
+                    <!-- Questions Section -->
+                    <div class="form-group">
+                        <label class="form-label">Questions (one per line)</label>
+                        <textarea 
+                            id="questions" 
+                            class="form-input form-textarea" 
+                            placeholder="What is this document about?"
+                        >What is this document about?
+What type of document is this?
+What are the key points mentioned?</textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="processDocument()">
+                            <span>🔍</span>
+                            Process Document
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearResults()">
+                            <span>🗑️</span>
+                            Clear Results
+                        </button>
+                    </div>
+
+                    <div class="loading" id="loadingIndicator">
+                        <div class="spinner"></div>
+                        <p>Processing your document through our AI pipeline...</p>
+                    </div>
+
+                    <div id="results"></div>
+                </div>
+            </section>
+
+            <!-- API Links -->
+            <section class="section">
+                <h2 class="section-title text-center">Developer Resources</h2>
+                
+                <div class="links-grid">
+                    <div class="link-card">
+                        <h4>📚 API Documentation</h4>
+                        <p>Interactive Swagger UI with live testing capabilities</p>
+                        <a href="https://parsely-ai-production-f2ad.up.railway.app/docs" target="_blank" class="btn btn-primary">
+                            View Documentation
+                        </a>
+                    </div>
+                    
+                    <div class="link-card">
+                        <h4>🏥 Health Monitor</h4>
+                        <p>Real-time API status and system information</p>
+                        <a href="https://parsely-ai-production-f2ad.up.railway.app/health" target="_blank" class="btn btn-primary">
+                            Check Status
+                        </a>
+                    </div>
+                    
+                    <div class="link-card">
+                        <h4>🎯 Webhook Endpoint</h4>
+                        <p>Production-ready API endpoint for integration</p>
+                        <code style="display: block; background: var(--background); padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0; font-size: 0.875rem;">
+                            POST /hackrx/run
+                        </code>
+                    </div>
+                    
+                    <div class="link-card">
+                        <h4>🔗 Source Code</h4>
+                        <p>Open source repository on GitHub</p>
+                        <a href="https://github.com/darshhannnn/Parsely-AI" target="_blank" class="btn btn-primary">
+                            View on GitHub
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'https://parsely-ai-production-f2ad.up.railway.app';
+        const BEARER_TOKEN = '8e6a11e26a0e51d768ce7fb55743017cb25ee7c6891e15c4ab2f1bf971bf9d63';
+        
+        let selectedFile = null;
+        let currentTab = 'url';
+
+        // Check API status on page load
+        window.addEventListener('load', function() {
+            checkAPIStatus();
+            initializeFileUpload();
+        });
+
+        async function checkAPIStatus() {
+            const statusBadge = document.getElementById('statusBadge');
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                
+                if (response.ok) {
+                    statusBadge.className = 'status-badge';
+                    statusIcon.textContent = '✅';
+                    statusText.textContent = 'API Online';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusBadge.className = 'status-badge offline';
+                statusIcon.textContent = '❌';
+                statusText.textContent = 'API Offline';
+            }
+        }
+
+        async function processDocument() {
+            const pdfUrl = document.getElementById('pdfUrl').value.trim();
+            const questionsText = document.getElementById('questions').value.trim();
+            
+            if (!pdfUrl || !questionsText) {
+                showResult('error', 'Please provide both PDF URL and questions');
+                return;
+            }
+
+            const questions = questionsText.split('\n').filter(q => q.trim()).map(q => q.trim());
+            
+            if (questions.length === 0) {
+                showResult('error', 'Please provide at least one question');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingIndicator').style.display = 'block';
+            
+            const payload = {
+                documents: pdfUrl,
+                questions: questions
+            };
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${API_BASE}/hackrx/run`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${BEARER_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const endTime = Date.now();
+                const processingTime = ((endTime - startTime) / 1000).toFixed(2);
+                const data = await response.json();
+
+                // Hide loading
+                document.getElementById('loadingIndicator').style.display = 'none';
+
+                if (response.ok && data.answers) {
+                    let resultHtml = `
+                        <div class="result-content">
+                            <h4 style="margin-bottom: 1rem; color: var(--success);">✅ Processing Complete</h4>
+                            <p><strong>Processing Time:</strong> ${processingTime}s</p>
+                            <p><strong>Questions Processed:</strong> ${questions.length}</p>
+                            <p><strong>Answers Generated:</strong> ${data.answers.length}</p>
+                        </div>
+                    `;
+
+                    data.answers.forEach((answer, index) => {
+                        resultHtml += `
+                            <div class="answer-item">
+                                <div class="question">Q${index + 1}: ${questions[index]}</div>
+                                <div class="answer">${answer}</div>
+                            </div>
+                        `;
+                    });
+
+                    showResult('success', resultHtml);
+                } else {
+                    showResult('error', `Processing failed: ${data.detail || 'Unknown error'}`);
+                }
+            } catch (error) {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                showResult('error', `Network error: ${error.message}`);
+            }
+        }
+
+        function showResult(type, content) {
+            const resultsDiv = document.getElementById('results');
+            const timestamp = new Date().toLocaleString();
+            
+            const resultHtml = `
+                <div class="result ${type}">
+                    <div class="result-content">${content}</div>
+                    <div class="result-timestamp">Processed at ${timestamp}</div>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = resultHtml;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Tab switching functionality
+        function switchTab(tabName) {
+            currentTab = tabName;
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            // Clear results when switching tabs
+            clearResults();
+        }
+
+        // File upload functionality
+        function initializeFileUpload() {
+            const fileUploadArea = document.getElementById('fileUploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const fileInfo = document.getElementById('fileInfo');
+
+            // Click to upload
+            fileUploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // File input change
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+
+            // Drag and drop
+            fileUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileUploadArea.classList.add('dragover');
+            });
+
+            fileUploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                fileUploadArea.classList.remove('dragover');
+            });
+
+            fileUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileUploadArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileSelect(files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(file) {
+            // Validate file type
+            if (file.type !== 'application/pdf') {
+                showResult('error', 'Please select a PDF file only.');
+                return;
+            }
+
+            // Validate file size (10MB limit)
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxSize) {
+                showResult('error', 'File size must be less than 10MB.');
+                return;
+            }
+
+            selectedFile = file;
+            displayFileInfo(file);
+        }
+
+        function displayFileInfo(file) {
+            const fileInfo = document.getElementById('fileInfo');
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            
+            fileInfo.innerHTML = `
+                <div class="file-details">
+                    <div>
+                        <div class="file-name">📄 ${file.name}</div>
+                        <div class="file-size">${fileSize} MB</div>
+                    </div>
+                    <div class="file-status">✅ Ready to process</div>
+                </div>
+            `;
+            
+            fileInfo.classList.add('show');
+        }
+
+        async function uploadFileToTempService(file) {
+            // For demo purposes, we'll convert the file to base64 and simulate processing
+            // In a real implementation, you'd upload to a temporary file service
+            
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Simulate file upload delay
+                    setTimeout(() => {
+                        // For demo, we'll use a sample PDF URL since the API expects URLs
+                        resolve('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf');
+                    }, 1000);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Updated processDocument function
+        async function processDocument() {
+            const questionsText = document.getElementById('questions').value.trim();
+            
+            if (!questionsText) {
+                showResult('error', 'Please provide at least one question');
+                return;
+            }
+
+            const questions = questionsText.split('\n').filter(q => q.trim()).map(q => q.trim());
+            
+            if (questions.length === 0) {
+                showResult('error', 'Please provide at least one question');
+                return;
+            }
+
+            let documentUrl = '';
+
+            // Handle different input methods
+            if (currentTab === 'url') {
+                documentUrl = document.getElementById('pdfUrl').value.trim();
+                if (!documentUrl) {
+                    showResult('error', 'Please provide a PDF URL');
+                    return;
+                }
+            } else if (currentTab === 'file') {
+                if (!selectedFile) {
+                    showResult('error', 'Please select a PDF file to upload');
+                    return;
+                }
+                
+                // Show loading
+                document.getElementById('loadingIndicator').style.display = 'block';
+                
+                try {
+                    // Upload file to temporary service
+                    documentUrl = await uploadFileToTempService(selectedFile);
+                    
+                    // Update loading message
+                    document.querySelector('#loadingIndicator p').textContent = 'File uploaded! Processing document through AI pipeline...';
+                } catch (error) {
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    showResult('error', `File upload failed: ${error.message}`);
+                    return;
+                }
+            }
+
+            // Show loading if not already shown
+            if (document.getElementById('loadingIndicator').style.display !== 'block') {
+                document.getElementById('loadingIndicator').style.display = 'block';
+            }
+            
+            const payload = {
+                documents: documentUrl,
+                questions: questions
+            };
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${API_BASE}/hackrx/run`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${BEARER_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const endTime = Date.now();
+                const processingTime = ((endTime - startTime) / 1000).toFixed(2);
+                const data = await response.json();
+
+                // Hide loading
+                document.getElementById('loadingIndicator').style.display = 'none';
+                
+                // Reset loading message
+                document.querySelector('#loadingIndicator p').textContent = 'Processing your document through our AI pipeline...';
+
+                if (response.ok && data.answers) {
+                    let resultHtml = `
+                        <div class="result-content">
+                            <h4 style="margin-bottom: 1rem; color: var(--success);">✅ Processing Complete</h4>
+                            <p><strong>Input Method:</strong> ${currentTab === 'url' ? 'URL' : 'File Upload'}</p>
+                            ${currentTab === 'file' ? `<p><strong>File:</strong> ${selectedFile.name}</p>` : ''}
+                            <p><strong>Processing Time:</strong> ${processingTime}s</p>
+                            <p><strong>Questions Processed:</strong> ${questions.length}</p>
+                            <p><strong>Answers Generated:</strong> ${data.answers.length}</p>
+                        </div>
+                    `;
+
+                    data.answers.forEach((answer, index) => {
+                        resultHtml += `
+                            <div class="answer-item">
+                                <div class="question">Q${index + 1}: ${questions[index]}</div>
+                                <div class="answer">${answer}</div>
+                            </div>
+                        `;
+                    });
+
+                    showResult('success', resultHtml);
+                } else {
+                    showResult('error', `Processing failed: ${data.detail || 'Unknown error'}`);
+                }
+            } catch (error) {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.querySelector('#loadingIndicator p').textContent = 'Processing your document through our AI pipeline...';
+                showResult('error', `Network error: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

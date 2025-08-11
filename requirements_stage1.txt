@@ -1,0 +1,16 @@
+# Additional requirements for Stage 1: Input Documents
+# Add these to your main requirements.txt
+
+# Document processing libraries
+PyPDF2>=3.0.0
+python-docx>=0.8.11
+
+# HTTP requests and networking
+requests>=2.31.0
+urllib3>=2.0.0
+
+# System monitoring (for utils)
+psutil>=5.9.0
+
+# Core dependencies (if not already included)
+python-dotenv>=1.0.0
