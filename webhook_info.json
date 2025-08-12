@@ -1,0 +1,9 @@
+{
+  "local_server": "http://localhost:8002",
+  "health_check": "http://localhost:8002/health",
+  "api_docs": "http://localhost:8002/docs",
+  "main_endpoint": "http://localhost:8002/hackrx/run",
+  "auth_token": "hackrx_2024_parsely_ai_token",
+  "ngrok_command": "ngrok http 8002",
+  "webhook_url_format": "https://[ngrok-url]/hackrx/run"
+}

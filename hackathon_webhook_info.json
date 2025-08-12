@@ -1,0 +1,8 @@
+{
+  "webhook_url": "https://0b7116336160.ngrok-free.app/hackrx/run",
+  "health_check": "https://0b7116336160.ngrok-free.app/health",
+  "api_docs": "https://0b7116336160.ngrok-free.app/docs",
+  "auth_token": "hackrx_2024_parsely_ai_token",
+  "method": "POST",
+  "content_type": "application/json"
+}
