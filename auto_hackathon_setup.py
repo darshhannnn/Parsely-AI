@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Automated Hackathon Setup - Parsely AI
-Automatically starts server and ngrok tunnel
+Automatically starts server and ngrok tunnel - NO HARDCODED SECRETS
 """
 
 import os
@@ -13,6 +13,10 @@ import threading
 import requests
 import webbrowser
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 class HackathonSetup:
     def __init__(self):
@@ -22,11 +26,10 @@ class HackathonSetup:
         self.port = 8001
         
     def setup_environment(self):
-        """Setup environment variables"""
+        """Setup environment variables from .env file"""
         print("🔧 Setting up environment...")
         
-        # Set API token
-        os.environ["HACKATHON_API_TOKEN"] = "hackrx_2024_parsely_ai_token"
+        # Set PORT
         os.environ["PORT"] = str(self.port)
         
         # Check for Google API key
@@ -46,6 +49,26 @@ class HackathonSetup:
             
             if not os.getenv("GOOGLE_API_KEY"):
                 print("❌ GOOGLE_API_KEY is required!")
+                print("   Please set it in your .env file or environment")
+                return False
+        
+        # Check for hackathon API token
+        if not os.getenv("HACKATHON_API_TOKEN"):
+            print("⚠️  HACKATHON_API_TOKEN not found in environment")
+            
+            # Try to load from .env file
+            env_file = Path(".env")
+            if env_file.exists():
+                with open(env_file, 'r') as f:
+                    for line in f:
+                        if line.startswith("HACKATHON_API_TOKEN="):
+                            token = line.split("=", 1)[1].strip()
+                            os.environ["HACKATHON_API_TOKEN"] = token
+                            print("✅ Loaded HACKATHON_API_TOKEN from .env file")
+                            break
+            
+            if not os.getenv("HACKATHON_API_TOKEN"):
+                print("❌ HACKATHON_API_TOKEN is required!")
                 print("   Please set it in your .env file or environment")
                 return False
         
@@ -77,7 +100,8 @@ class HackathonSetup:
                 [sys.executable, "src/api/hackathon_main.py"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
+                env=os.environ.copy()
             )
             
             # Wait a bit for server to start
@@ -175,10 +199,12 @@ class HackathonSetup:
         
         if self.webhook_url:
             webhook_endpoint = f"{self.webhook_url}/hackrx/run"
+            auth_token = os.getenv("HACKATHON_API_TOKEN", "NOT_SET")
+            
             print(f"🌐 Webhook URL: {webhook_endpoint}")
             print(f"📋 Health Check: {self.webhook_url}/health")
             print(f"📚 API Docs: {self.webhook_url}/docs")
-            print(f"🔑 Auth Token: hackrx_2024_parsely_ai_token")
+            print(f"🔑 Auth Token: {auth_token[:20]}..." if len(auth_token) > 20 else f"🔑 Auth Token: {auth_token}")
             
             print("\n📋 HACKATHON SUBMISSION INFO:")
             print(f"   Project: Parsely AI - LLM Document Processing")
@@ -189,9 +215,9 @@ class HackathonSetup:
             
             print("\n🧪 TEST COMMAND:")
             print(f'''curl -X POST "{webhook_endpoint}" \\
-  -H "Authorization: Bearer hackrx_2024_parsely_ai_token" \\
-  -H "Content-Type: application/json" \\
-  -d '{{"documents": "https://example.com/test.pdf", "questions": ["What is this about?"]}}\'''')
+   -H "Authorization: Bearer {auth_token}" \\
+   -H "Content-Type: application/json" \\
+   -d '{{"documents": "https://example.com/test.pdf", "questions": ["What is this about?"]}}\'''')
             
             # Open browser to API docs
             try:
@@ -205,7 +231,7 @@ class HackathonSetup:
                 "webhook_url": webhook_endpoint,
                 "health_check": f"{self.webhook_url}/health",
                 "api_docs": f"{self.webhook_url}/docs",
-                "auth_token": "hackrx_2024_parsely_ai_token",
+                "auth_token": auth_token,
                 "method": "POST",
                 "content_type": "application/json"
             }
@@ -222,16 +248,32 @@ class HackathonSetup:
         print("   Closing this will stop your webhook URL from working.")
     
     def cleanup(self):
-        """Cleanup processes"""
+        """Cleanup processes gracefully"""
         print("\n🛑 Shutting down...")
         
         if self.ngrok_process:
-            self.ngrok_process.terminate()
-            print("   Stopped ngrok")
+            try:
+                self.ngrok_process.terminate()
+                # Wait up to 5 seconds for graceful shutdown
+                self.ngrok_process.wait(timeout=5)
+                print("   Stopped ngrok")
+            except subprocess.TimeoutExpired:
+                self.ngrok_process.kill()
+                print("   Force killed ngrok (timeout)")
+            except Exception as e:
+                print(f"   Error stopping ngrok: {e}")
         
         if self.server_process:
-            self.server_process.terminate()
-            print("   Stopped API server")
+            try:
+                self.server_process.terminate()
+                # Wait up to 5 seconds for graceful shutdown
+                self.server_process.wait(timeout=5)
+                print("   Stopped API server")
+            except subprocess.TimeoutExpired:
+                self.server_process.kill()
+                print("   Force killed API server (timeout)")
+            except Exception as e:
+                print(f"   Error stopping server: {e}")
     
     def run(self):
         """Run the complete setup"""
