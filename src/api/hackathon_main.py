@@ -14,6 +14,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
+
+# Configure logging FIRST - before any other imports
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Optional rate limiting - gracefully handle if slowapi is not available
 try:
     from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -23,10 +28,6 @@ try:
 except ImportError:
     logger.warning("slowapi not available - rate limiting disabled")
     RATE_LIMITING_AVAILABLE = False
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Security configuration
 security = HTTPBearer()
@@ -41,10 +42,6 @@ if not GOOGLE_API_KEY:
     logger.warning("GOOGLE_API_KEY not set - document processing will fail")
 
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.0-flash")
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="LLM Document Processing - Hackathon API",
@@ -66,9 +63,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Security scheme for bearer token (already defined above)
-security = HTTPBearer()
 
 class HackathonRequest(BaseModel):
     """Request model matching hackathon specification"""
@@ -148,6 +142,27 @@ def download_pdf_from_blob_url(blob_url: str) -> str:
             detail=f"Unexpected error downloading PDF: {str(e)}"
         )
 
+def _split_text_intelligently(text: str, max_chars: int = 4000) -> str:
+    """
+    Split text at sentence boundaries to avoid truncating mid-sentence.
+    Returns text truncated at the nearest sentence end.
+    """
+    if len(text) <= max_chars:
+        return text
+    
+    # Truncate to max_chars
+    truncated = text[:max_chars]
+    
+    # Find the last sentence boundary (., !, or ?) before the limit
+    sentence_endings = ['.', '!', '?']
+    for ending in sentence_endings:
+        last_pos = truncated.rfind(ending)
+        if last_pos > max_chars * 0.8:  # Ensure we don't lose too much content
+            return truncated[:last_pos + 1]
+    
+    # If no good sentence boundary found, just truncate and add ellipsis
+    return truncated + "..."
+
 def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[str]:
     """
     Process PDF document and answer questions using the complete 6-stage pipeline.
@@ -184,6 +199,9 @@ def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[
         if not document_text.strip():
             return ["Document appears to be empty or unreadable" for _ in questions]
         
+        # Intelligently split document text to avoid truncation issues
+        document_context = _split_text_intelligently(document_text, max_chars=4000)
+        
         # Stages 2-6: Process each question with simplified pipeline
         answers = []
         for question in questions:
@@ -195,7 +213,7 @@ def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[
 You are an expert document analyzer. Based on the provided document content, please answer the question accurately and professionally.
 
 Document Content:
-{document_text[:4000]}  # Limit context to avoid token limits
+{document_context}
 
 Question: {question}
 
