@@ -199,6 +199,27 @@ def detect_document_format(content: bytes, url: str, content_type: str) -> str:
     # Default to PDF
     return 'pdf'
 
+def _split_text_intelligently(text: str, max_chars: int = 4000) -> str:
+    """
+    Split text at sentence boundaries to avoid truncating mid-sentence.
+    Returns text truncated at the nearest sentence end.
+    """
+    if len(text) <= max_chars:
+        return text
+
+    # Truncate to max_chars
+    truncated = text[:max_chars]
+
+    # Find the last sentence boundary (., !, or ?) before the limit
+    sentence_endings = ['.', '!', '?']
+    for ending in sentence_endings:
+        last_pos = truncated.rfind(ending)
+        if last_pos > max_chars * 0.8:  # Ensure we don't lose too much content
+            return truncated[:last_pos + 1]
+
+    # If no good sentence boundary found, just truncate and add ellipsis
+    return truncated + "..."
+
 def process_document_and_questions(document_path: str, document_format: str, questions: List[str]) -> List[str]:
     """
     Process multi-format document and answer questions using the enhanced 6-stage pipeline.
@@ -242,6 +263,9 @@ def process_document_and_questions(document_path: str, document_format: str, que
         
         logger.info(f"Extracted {len(document_text)} characters from {document_format} document")
         
+        # Intelligently split document text to avoid truncation issues
+        document_context = _split_text_intelligently(document_text, max_chars=4000)
+
         # Stages 2-6: Process each question with enhanced context
         answers = []
         for question in questions:
@@ -264,7 +288,7 @@ Document Information:
 {context_info}
 
 Document Content:
-{document_text[:4000]}  # Limit context to avoid token limits
+{document_context}
 
 Question: {question}
 
