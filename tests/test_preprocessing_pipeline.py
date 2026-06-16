@@ -212,14 +212,18 @@ class TestContentNormalizer:
     
     def test_normalize_quotes(self, normalizer):
         """Test quote normalization"""
-        text_with_smart_quotes = ""Hello" and 'world' with «quotes»"
+        # Using actual smart quotes: “ (U+201C), ” (U+201D), ‘ (U+2018), ’ (U+2019)
+        text_with_smart_quotes = '“Hello” and ‘world’ with «quotes»'
         result, changes = normalizer._normalize_quotes(text_with_smart_quotes)
         
         assert changes > 0
-        assert '"' not in result  # Smart quotes removed
-        assert '"' not in result
-        assert ''' not in result
-        assert ''' not in result
+        assert '“' not in result
+        assert '”' not in result
+        assert '‘' not in result
+        assert '’' not in result
+        assert '"Hello"' in result
+        assert "'world'" in result
+        assert '"quotes"' in result
     
     def test_normalize_dashes(self, normalizer):
         """Test dash normalization"""
@@ -232,8 +236,8 @@ class TestContentNormalizer:
     
     def test_calculate_quality_improvements(self, normalizer):
         """Test quality improvement calculation"""
-        original = "This  has   ""smart quotes""  and—dashes"
-        normalized = "This has \"smart quotes\" and-dashes"
+        original = 'This  has   “smart quotes”  and—dashes'
+        normalized = 'This has "smart quotes" and-dashes'
         
         result = normalizer._calculate_quality_improvements(original, normalized)
         
@@ -300,13 +304,13 @@ class TestTempFileManager:
     
     def test_cleanup_expired_files(self, temp_manager):
         """Test expired file cleanup"""
-        # Create file with short expiration
+        # Create file with very short expiration
         file_path = temp_manager.create_temp_file(
             purpose='test',
-            cleanup_after_hours=0.001  # Very short expiration
+            cleanup_after_hours=0.00001  # ~0.036 seconds
         )
         
-        # Wait a bit
+        # Wait a bit longer than expiration
         time.sleep(0.1)
         
         # Force cleanup
@@ -480,7 +484,7 @@ class TestPreprocessingIntegration:
         document = DocumentContent(
             url='https://example.com/test.pdf',
             content_type='application/pdf',
-            raw_content=b'%PDF-1.4 sample content with unicode café and extra  spaces',
+            raw_content='%PDF-1.4 sample content with unicode café and extra  spaces'.encode('utf-8'),
             size_bytes=1024
         )
         

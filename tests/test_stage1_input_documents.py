@@ -281,7 +281,7 @@ class TestContentExtractor:
             raw_content=b'plain text'
         )
         
-        with pytest.raises(UnsupportedFormatError):
+        with pytest.raises(ContentExtractionError):
             extractor.extract_content(document, DocumentType.PDF)  # Wrong type
 
 
@@ -396,7 +396,11 @@ class TestStage1DocumentProcessor:
         # Test processing
         result = processor.process_document_url('https://example.com/test.pdf')
         
-        assert result == mock_extracted
+        assert result.document_id == mock_extracted.document_id
+        assert result.document_type == mock_extracted.document_type
+        assert result.text_content == mock_extracted.text_content
+        assert result.pages == mock_extracted.pages
+        assert 'stage1_processing' in result.metadata
         mock_download.assert_called_once_with('https://example.com/test.pdf')
         mock_extract.assert_called_once_with(mock_document)
         mock_validate.assert_called_once_with(mock_extracted)

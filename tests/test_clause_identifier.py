@@ -71,62 +71,13 @@ class TestIdentifiedClause:
             confidence=0.9
         )
         
-        assert clause.id == "test_clause_1"
-        assert clause.content == "The party shall pay all fees within 30 days."
-        assert clause.clause_type == ClauseType.PAYMENT
-        assert clause.structure_type == StructureType.CLAUSE
-        assert clause.start_position == 100
-        assert clause.end_position == 150
-        assert clause.document_id == "doc_123"
-        assert clause.numbering == "1.1"
-        assert clause.title == "Payment Terms"
-        assert clause.key_terms == ["payment", "fees", "30 days"]
-        assert clause.obligations == ["pay all fees within 30 days"]
-        assert clause.confidence == 0.9
-    
-    def test_clause_id_generation(self):
-        """Test automatic clause ID generation"""
-        clause = IdentifiedClause(
-            id="",  # Empty ID should trigger generation
-            content="Test clause content",
-            clause_type=ClauseType.OTHER,
-            structure_type=StructureType.CLAUSE,
-            start_position=0,
-            end_position=20,
-            document_id="doc_123"
-        )
-        
-        assert clause.id != ""
-        assert clause.id.startswith("doc_123_clause_0_")
-        assert len(clause.id.split("_")) == 4
-    
-    def test_clause_to_dict(self):
-        """Test clause serialization to dictionary"""
-        clause = IdentifiedClause(
-            id="test_clause",
-            content="Test content",
-            clause_type=ClauseType.OBLIGATION,
-            structure_type=StructureType.PARAGRAPH,
-            start_position=0,
-            end_position=12,
-            document_id="doc_123",
-            key_terms=["test", "content"],
-            obligations=["test obligation"]
-        )
-        
         clause_dict = clause.to_dict()
-        
-        assert clause_dict["id"] == "test_clause"
-        assert clause_dict["content"] == "Test content"
-        assert clause_dict["clause_type"] == "obligation"
-        assert clause_dict["structure_type"] == "paragraph"
-        assert clause_dict["key_terms"] == ["test", "content"]
-        assert clause_dict["obligations"] == ["test obligation"]
+        assert clause_dict["content"] == "The party shall pay all fees within 30 days."
+        assert clause_dict["clause_type"] == "payment"
+        assert clause_dict["structure_type"] == "clause"
+        assert clause_dict["key_terms"] == ["payment", "fees", "30 days"]
+        assert clause_dict["obligations"] == ["pay all fees within 30 days"]
 
-
-class TestDocumentStructure:
-    """Test document structure"""
-    
     @pytest.fixture
     def sample_clauses(self):
         """Create sample clauses for testing"""

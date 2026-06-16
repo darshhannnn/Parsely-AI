@@ -227,6 +227,10 @@ class TestUnifiedSearchEngine:
     def test_search_similar_by_vector_pinecone(self, mock_pinecone_class, mock_faiss_class, mock_get_config, 
                                               mock_config, mock_faiss_engine, mock_pinecone_engine, sample_search_results):
         """Test vector search with Pinecone engine"""
+        # Ensure pinecone is initialized by having correct config
+        mock_config.database.vector_db_type = "pinecone"
+        mock_config.database.pinecone_api_key = "test-key"
+        
         mock_get_config.return_value = mock_config
         mock_faiss_class.return_value = mock_faiss_engine
         mock_pinecone_class.return_value = mock_pinecone_engine
@@ -238,6 +242,7 @@ class TestUnifiedSearchEngine:
         
         results = engine.search_similar_by_vector(query_vector)
         
+        assert isinstance(results, list)
         assert len(results) == 2
         assert results[0].chunk_id == "chunk_0"
         
@@ -251,6 +256,11 @@ class TestUnifiedSearchEngine:
     def test_search_with_fallback(self, mock_pinecone_class, mock_faiss_class, mock_get_config, 
                                  mock_config, mock_faiss_engine, mock_pinecone_engine, sample_search_results):
         """Test search with fallback on failure"""
+        # Ensure pinecone is initialized
+        mock_config.database.vector_db_type = "auto"
+        mock_config.database.pinecone_api_key = "test-key"
+        mock_config.enable_caching = True # Fallback flag
+        
         mock_get_config.return_value = mock_config
         mock_faiss_class.return_value = mock_faiss_engine
         mock_pinecone_class.return_value = mock_pinecone_engine
@@ -265,6 +275,7 @@ class TestUnifiedSearchEngine:
         search_config = UnifiedSearchConfiguration(enable_fallback=True)
         results = engine.search_similar_by_vector(query_vector, search_config)
         
+        assert isinstance(results, list)
         assert len(results) == 2
         assert engine.active_db_type == VectorDBType.FAISS  # Should have fallen back
         assert engine.stats['fallback_events'] == 1
@@ -393,9 +404,9 @@ class TestUnifiedSearchEngine:
         stats = engine.get_unified_stats()
         
         assert stats['total_searches'] == 10
-        assert stats['average_search_time'] == 0.2
-        assert stats['average_faiss_search_time'] == 0.2
-        assert stats['average_pinecone_search_time'] == 0.2
+        assert stats['average_search_time'] == pytest.approx(0.2)
+        assert stats['average_faiss_search_time'] == pytest.approx(0.2)
+        assert stats['average_pinecone_search_time'] == pytest.approx(0.2)
         assert 'faiss_engine_stats' in stats
         assert 'pinecone_engine_stats' in stats
     

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -316,8 +317,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* Features Grid */
@@ -417,20 +423,20 @@
             .hero h1 {
                 font-size: 2.5rem;
             }
-            
+
             .hero-stats {
                 flex-direction: column;
                 gap: 1rem;
             }
-            
+
             .pipeline {
                 flex-direction: column;
             }
-            
+
             .pipeline-arrow {
                 transform: rotate(90deg);
             }
-            
+
             .container {
                 padding: 0 16px;
             }
@@ -572,11 +578,20 @@
         }
 
         /* Utilities */
-        .text-center { text-align: center; }
-        .mb-4 { margin-bottom: 1rem; }
-        .mt-4 { margin-top: 1rem; }
+        .text-center {
+            text-align: center;
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .mt-4 {
+            margin-top: 1rem;
+        }
     </style>
 </head>
+
 <body>
     <!-- Header -->
     <header class="header">
@@ -599,7 +614,7 @@
         <div class="container">
             <h1>Intelligent Document Processing</h1>
             <p>Transform your PDF documents into actionable insights with our advanced AI-powered analysis platform</p>
-            
+
             <div class="hero-stats">
                 <div class="stat">
                     <span class="stat-number">6</span>
@@ -626,7 +641,8 @@
                     <div class="feature">
                         <div class="feature-icon">🤖</div>
                         <h3>AI-Powered Analysis</h3>
-                        <p>Advanced natural language processing with Google Gemini AI for intelligent document understanding</p>
+                        <p>Advanced natural language processing with Google Gemini AI for intelligent document
+                            understanding</p>
                     </div>
                     <div class="feature">
                         <div class="feature-icon">⚡</div>
@@ -650,7 +666,7 @@
             <section class="section">
                 <h2 class="section-title text-center">How It Works</h2>
                 <p class="section-subtitle text-center">Our 6-stage intelligent processing pipeline</p>
-                
+
                 <div class="pipeline">
                     <div class="pipeline-step">
                         <strong>📄 Input</strong><br>
@@ -688,7 +704,7 @@
             <section class="section">
                 <h2 class="section-title text-center">Try It Now</h2>
                 <p class="section-subtitle text-center">Test our document processing capabilities</p>
-                
+
                 <div class="demo-card">
                     <!-- Input Method Tabs -->
                     <div class="input-tabs">
@@ -706,13 +722,9 @@
                     <div id="urlTab" class="tab-content active">
                         <div class="form-group">
                             <label class="form-label">PDF Document URL</label>
-                            <input 
-                                type="url" 
-                                id="pdfUrl" 
-                                class="form-input" 
+                            <input type="url" id="pdfUrl" class="form-input"
                                 placeholder="https://example.com/document.pdf"
-                                value="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
-                            >
+                                value="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf">
                         </div>
                     </div>
 
@@ -724,7 +736,8 @@
                                 <div class="file-upload-content">
                                     <div class="file-upload-icon">📄</div>
                                     <div class="file-upload-text">
-                                        <strong>Drop your PDF here</strong> or <span class="file-upload-link">browse files</span>
+                                        <strong>Drop your PDF here</strong> or <span class="file-upload-link">browse
+                                            files</span>
                                     </div>
                                     <div class="file-upload-hint">Supports PDF files up to 10MB</div>
                                 </div>
@@ -737,11 +750,8 @@
                     <!-- Questions Section -->
                     <div class="form-group">
                         <label class="form-label">Questions (one per line)</label>
-                        <textarea 
-                            id="questions" 
-                            class="form-input form-textarea" 
-                            placeholder="What is this document about?"
-                        >What is this document about?
+                        <textarea id="questions" class="form-input form-textarea"
+                            placeholder="What is this document about?">What is this document about?
 What type of document is this?
 What are the key points mentioned?</textarea>
                     </div>
@@ -769,32 +779,35 @@ What are the key points mentioned?</textarea>
             <!-- API Links -->
             <section class="section">
                 <h2 class="section-title text-center">Developer Resources</h2>
-                
+
                 <div class="links-grid">
                     <div class="link-card">
                         <h4>📚 API Documentation</h4>
                         <p>Interactive Swagger UI with live testing capabilities</p>
-                        <a href="https://parsely-ai-production-f2ad.up.railway.app/docs" target="_blank" class="btn btn-primary">
+                        <a href="https://parsely-ai-production-f2ad.up.railway.app/docs" target="_blank"
+                            class="btn btn-primary">
                             View Documentation
                         </a>
                     </div>
-                    
+
                     <div class="link-card">
                         <h4>🏥 Health Monitor</h4>
                         <p>Real-time API status and system information</p>
-                        <a href="https://parsely-ai-production-f2ad.up.railway.app/health" target="_blank" class="btn btn-primary">
+                        <a href="https://parsely-ai-production-f2ad.up.railway.app/health" target="_blank"
+                            class="btn btn-primary">
                             Check Status
                         </a>
                     </div>
-                    
+
                     <div class="link-card">
                         <h4>🎯 Webhook Endpoint</h4>
                         <p>Production-ready API endpoint for integration</p>
-                        <code style="display: block; background: var(--background); padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0; font-size: 0.875rem;">
+                        <code
+                            style="display: block; background: var(--background); padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0; font-size: 0.875rem;">
                             POST /hackrx/run
                         </code>
                     </div>
-                    
+
                     <div class="link-card">
                         <h4>🔗 Source Code</h4>
                         <p>Open source repository on GitHub</p>
@@ -810,12 +823,12 @@ What are the key points mentioned?</textarea>
     <script>
         const API_BASE = 'https://parsely-ai-production-f2ad.up.railway.app';
         const BEARER_TOKEN = '8e6a11e26a0e51d768ce7fb55743017cb25ee7c6891e15c4ab2f1bf971bf9d63';
-        
+
         let selectedFile = null;
         let currentTab = 'url';
 
         // Check API status on page load
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             checkAPIStatus();
             initializeFileUpload();
         });
@@ -824,10 +837,10 @@ What are the key points mentioned?</textarea>
             const statusBadge = document.getElementById('statusBadge');
             const statusIcon = document.getElementById('statusIcon');
             const statusText = document.getElementById('statusText');
-            
+
             try {
                 const response = await fetch(`${API_BASE}/health`);
-                
+
                 if (response.ok) {
                     statusBadge.className = 'status-badge';
                     statusIcon.textContent = '✅';
@@ -845,14 +858,14 @@ What are the key points mentioned?</textarea>
         async function processDocument() {
             const pdfUrl = document.getElementById('pdfUrl').value.trim();
             const questionsText = document.getElementById('questions').value.trim();
-            
+
             if (!pdfUrl || !questionsText) {
                 showResult('error', 'Please provide both PDF URL and questions');
                 return;
             }
 
             const questions = questionsText.split('\n').filter(q => q.trim()).map(q => q.trim());
-            
+
             if (questions.length === 0) {
                 showResult('error', 'Please provide at least one question');
                 return;
@@ -860,7 +873,7 @@ What are the key points mentioned?</textarea>
 
             // Show loading
             document.getElementById('loadingIndicator').style.display = 'block';
-            
+
             const payload = {
                 documents: pdfUrl,
                 questions: questions
@@ -916,14 +929,14 @@ What are the key points mentioned?</textarea>
         function showResult(type, content) {
             const resultsDiv = document.getElementById('results');
             const timestamp = new Date().toLocaleString();
-            
+
             const resultHtml = `
                 <div class="result ${type}">
                     <div class="result-content">${content}</div>
                     <div class="result-timestamp">Processed at ${timestamp}</div>
                 </div>
             `;
-            
+
             resultsDiv.innerHTML = resultHtml;
         }
 
@@ -934,15 +947,15 @@ What are the key points mentioned?</textarea>
         // Tab switching functionality
         function switchTab(tabName) {
             currentTab = tabName;
-            
+
             // Update tab buttons
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
-            
+
             // Update tab content
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             document.getElementById(tabName + 'Tab').classList.add('active');
-            
+
             // Clear results when switching tabs
             clearResults();
         }
@@ -979,7 +992,7 @@ What are the key points mentioned?</textarea>
             fileUploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
                 fileUploadArea.classList.remove('dragover');
-                
+
                 const files = e.dataTransfer.files;
                 if (files.length > 0) {
                     handleFileSelect(files[0]);
@@ -1008,7 +1021,7 @@ What are the key points mentioned?</textarea>
         function displayFileInfo(file) {
             const fileInfo = document.getElementById('fileInfo');
             const fileSize = (file.size / 1024 / 1024).toFixed(2);
-            
+
             fileInfo.innerHTML = `
                 <div class="file-details">
                     <div>
@@ -1018,17 +1031,17 @@ What are the key points mentioned?</textarea>
                     <div class="file-status">✅ Ready to process</div>
                 </div>
             `;
-            
+
             fileInfo.classList.add('show');
         }
 
         async function uploadFileToTempService(file) {
             // For demo purposes, we'll convert the file to base64 and simulate processing
             // In a real implementation, you'd upload to a temporary file service
-            
+
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     // Simulate file upload delay
                     setTimeout(() => {
                         // For demo, we'll use a sample PDF URL since the API expects URLs
@@ -1043,14 +1056,14 @@ What are the key points mentioned?</textarea>
         // Updated processDocument function
         async function processDocument() {
             const questionsText = document.getElementById('questions').value.trim();
-            
+
             if (!questionsText) {
                 showResult('error', 'Please provide at least one question');
                 return;
             }
 
             const questions = questionsText.split('\n').filter(q => q.trim()).map(q => q.trim());
-            
+
             if (questions.length === 0) {
                 showResult('error', 'Please provide at least one question');
                 return;
@@ -1070,14 +1083,14 @@ What are the key points mentioned?</textarea>
                     showResult('error', 'Please select a PDF file to upload');
                     return;
                 }
-                
+
                 // Show loading
                 document.getElementById('loadingIndicator').style.display = 'block';
-                
+
                 try {
                     // Upload file to temporary service
                     documentUrl = await uploadFileToTempService(selectedFile);
-                    
+
                     // Update loading message
                     document.querySelector('#loadingIndicator p').textContent = 'File uploaded! Processing document through AI pipeline...';
                 } catch (error) {
@@ -1091,7 +1104,7 @@ What are the key points mentioned?</textarea>
             if (document.getElementById('loadingIndicator').style.display !== 'block') {
                 document.getElementById('loadingIndicator').style.display = 'block';
             }
-            
+
             const payload = {
                 documents: documentUrl,
                 questions: questions
@@ -1114,7 +1127,7 @@ What are the key points mentioned?</textarea>
 
                 // Hide loading
                 document.getElementById('loadingIndicator').style.display = 'none';
-                
+
                 // Reset loading message
                 document.querySelector('#loadingIndicator p').textContent = 'Processing your document through our AI pipeline...';
 
@@ -1151,4 +1164,5 @@ What are the key points mentioned?</textarea>
         }
     </script>
 </body>
+
 </html>

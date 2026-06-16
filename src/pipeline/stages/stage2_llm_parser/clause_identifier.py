@@ -265,62 +265,15 @@ class LegalPatternMatcher:
         # Reference patterns
         self.reference_patterns = [
             re.compile(r'\b(?:Section|Article|Clause|Paragraph)\s+(\d+(?:\.\d+)*)\b', re.IGNORECASE),
-            re.compile(r'\b(?:subsection|subparagraph)\s+\(([a-z0-9]+)\)\b', re.IGNORECASE),
+            re.compile(r'\b(?:subsection|subparagraph)\s+\(([a-z0-9]+)\)', re.IGNORECASE),
             re.compile(r'\b(?:Schedule|Appendix|Exhibit)\s+([A-Z\d]+)\b', re.IGNORECASE),
             re.compile(r'\b(?:above|below|herein|hereof|hereto|hereunder)\b', re.IGNORECASE),
         ]
     
-    def extract_numbering(self, text: str) -> Optional[Tuple[str, str]]:
-        """Extract numbering from text"""
-        for pattern_name, pattern in self.numbering_patterns.items():
-            match = pattern.match(text.strip())
-            if match:
-                return match.group(1), match.group(2).strip()
-        return None
-    
-    def identify_structure_type(self, text: str, context: str = "") -> StructureType:
-        """Identify the structure type of a text segment"""
+    def identify_clause_type(self, text: str) -> Tuple[ClauseType, float]:
+        """Identify the clause type of a text segment"""
         text_lower = text.lower().strip()
         
-        # Check for explicit structure indicators
-        for structure_name, pattern in self.structure_patterns.items():
-            if pattern.match(text):
-                return StructureType(structure_name)
-        
-        # Check for common legal document structures
-        if text_lower.startswith(('whereas', 'recital')):
-            return StructureType.RECITAL
-        elif text_lower.startswith('preamble'):
-            return StructureType.PREAMBLE
-        elif 'signature' in text_lower and ('date' in text_lower or 'sign' in text_lower):
-            return StructureType.SIGNATURE_BLOCK
-        elif text_lower.startswith(('schedule', 'appendix', 'exhibit')):
-            return StructureType.SCHEDULE
-        
-        # Determine based on numbering and length
-        numbering = self.extract_numbering(text)
-        if numbering:
-            number, content = numbering
-            if '.' in number and len(number.split('.')) > 2:
-                return StructureType.SUBCLAUSE
-            elif '.' in number:
-                return StructureType.CLAUSE
-            elif len(content) > 200:
-                return StructureType.SECTION
-            else:
-                return StructureType.SUBSECTION
-        
-        # Default based on length and context
-        if len(text) < 100:
-            return StructureType.HEADING
-        elif len(text) < 500:
-            return StructureType.PARAGRAPH
-        else:
-            return StructureType.SECTION
-    
-    def identify_clause_type(self, text: str) -> Tuple[ClauseType, float]:
-        """Identify the type of a clause based on content"""
-        text_lower = text.lower()
         scores = {}
         
         for clause_type, patterns in self.clause_indicators.items():
@@ -335,55 +288,83 @@ class LegalPatternMatcher:
         
         if scores:
             best_type = max(scores, key=scores.get)
-            confidence = min(scores[best_type], 1.0)
-            return best_type, confidence
+            return best_type, scores[best_type]
         
         return ClauseType.OTHER, 0.5
-    
-    def extract_references(self, text: str) -> List[str]:
-        """Extract references to other parts of the document"""
-        references = []
+
+    def identify_structure_type(self, text: str) -> StructureType:
+        """Identify the structure type of a text segment"""
+        text_strip = text.strip()
+        text_lower = text_strip.lower()
         
-        for pattern in self.reference_patterns:
-            matches = pattern.findall(text)
-            references.extend(matches)
+        # Check explicit patterns
+        for name, pattern in self.structure_patterns.items():
+            if pattern.match(text_strip):
+                # Ensure name matches StructureType enum values
+                try:
+                    return StructureType(name)
+                except ValueError:
+                    continue
         
-        return list(set(references))  # Remove duplicates
-    
+        # Check special structures
+        if text_lower.startswith("whereas"):
+            return StructureType.RECITAL
+        if text_lower.startswith("schedule"):
+            return StructureType.SCHEDULE
+            
+        # Check for numbering
+        numbering = self.extract_numbering(text_strip)
+        if numbering:
+            if len(text_strip) < 200:
+                return StructureType.SUBSECTION
+            else:
+                return StructureType.SECTION
+        
+        # Default based on length
+        if len(text_strip) < 150:
+            return StructureType.HEADING
+        else:
+            return StructureType.SECTION
+
+    def extract_numbering(self, text: str) -> Optional[Tuple[str, str]]:
+        """Extract numbering and title from a line of text"""
+        for name, pattern in self.numbering_patterns.items():
+            match = pattern.match(text)
+            if match:
+                return match.group(1), match.group(2).strip()
+        return None
+
     def extract_key_terms(self, text: str) -> List[str]:
         """Extract key legal terms from text"""
-        # Common legal terms and phrases
-        legal_terms_patterns = [
-            r'\b(?:agreement|contract|party|parties)\b',
-            r'\b(?:breach|default|violation|non-compliance)\b',
-            r'\b(?:damages|liability|indemnification|compensation)\b',
-            r'\b(?:confidential|proprietary|intellectual\s+property)\b',
-            r'\b(?:termination|expiration|renewal)\b',
-            r'\b(?:governing\s+law|jurisdiction|dispute\s+resolution)\b',
-            r'\b(?:force\s+majeure|act\s+of\s+god)\b',
-            r'\b(?:warranty|representation|guarantee)\b',
-            r'\b(?:assignment|transfer|delegation)\b',
-            r'\b(?:notice|notification|communication)\b',
-        ]
+        terms = []
         
-        key_terms = []
+        # Extract quoted terms
+        quoted_terms = re.findall(r'["\']([^"\']+)["\']', text)
+        terms.extend(quoted_terms)
+        
+        # Extract common legal terms based on indicators
         text_lower = text.lower()
-        
-        for pattern in legal_terms_patterns:
-            matches = re.findall(pattern, text_lower)
-            key_terms.extend(matches)
-        
-        # Extract quoted terms (often definitions)
-        quoted_terms = re.findall(r'"([^"]+)"', text)
-        key_terms.extend(quoted_terms)
-        
-        # Extract capitalized terms (often defined terms)
-        capitalized_terms = re.findall(r'\b[A-Z][A-Z\s]{2,}\b', text)
-        key_terms.extend(capitalized_terms)
-        
-        return list(set(key_terms))  # Remove duplicates
+        legal_keywords = ["liability", "termination", "breach", "confidential", "payment", "obligation", "right"]
+        for keyword in legal_keywords:
+            if keyword in text_lower:
+                terms.append(keyword)
+                                
+        return list(set(terms))
+
+    def extract_references(self, text: str) -> List[str]:
+        """Extract references to other sections or clauses"""
+        references = []
+        for pattern in self.reference_patterns:
+            matches = pattern.findall(text)
+            for match in matches:
+                if isinstance(match, tuple):
+                    references.extend([m for m in match if m])
+                else:
+                    references.append(match)
+        return list(set(references))
+
 class LLMClauseAnalyzer:
-    """LLM-powered clause analysis for advanced identification"""
+    """Analyzer for clauses using Large Language Models"""
     
     def __init__(self, llm_manager: LLMManager):
         self.llm_manager = llm_manager
@@ -489,6 +470,9 @@ class ClauseStructureIdentifier:
                         document_id=document_id,
                         content_length=len(content))
         
+        if not content.strip():
+             raise ClauseExtractionError("Content cannot be empty", document_id)
+
         try:
             # Step 1: Extract basic document structure
             sections = self._extract_document_sections(content)
@@ -509,7 +493,7 @@ class ClauseStructureIdentifier:
                 title=self._extract_document_title(content),
                 sections=sections,
                 clauses=clauses,
-                relationships=[],  # Simplified for now
+                relationships=self._identify_relationships(clauses, content),
                 metadata={
                     "total_clauses": len(clauses),
                     "clause_types": self._get_clause_type_distribution(clauses),
@@ -599,7 +583,7 @@ class ClauseStructureIdentifier:
     def _segment_content_for_clauses(self, content: str) -> List[Dict[str, Any]]:
         """Segment content into potential clause units"""
         segments = []
-        paragraphs = content.split('\n\n')
+        paragraphs = re.split(r'\n\s*\n', content)
         
         position = 0
         for para in paragraphs:
@@ -614,25 +598,6 @@ class ClauseStructureIdentifier:
             position += len(para) + 2
         
         return segments
-    
-    def _is_likely_clause(self, text: str) -> bool:
-        """Determine if text segment is likely a legal clause"""
-        text_lower = text.lower()
-        
-        legal_indicators = [
-            r'\b(?:shall|must|will|agrees?|undertakes?)\b',
-            r'\b(?:party|parties|agreement|contract)\b',
-            r'\b(?:liable|liability|responsible|damages)\b',
-            r'\b(?:breach|default|violation|termination)\b',
-            r'\b(?:confidential|proprietary|intellectual\s+property)\b',
-            r'\b(?:payment|fee|cost|compensation)\b',
-            r'\b(?:governing\s+law|jurisdiction|dispute)\b',
-        ]
-        
-        indicator_count = sum(1 for pattern in legal_indicators 
-                            if re.search(pattern, text_lower))
-        
-        return indicator_count >= 2 and 50 <= len(text) <= 2000
     
     def _create_clause_from_segment(self, segment: Dict[str, Any], document_id: str) -> IdentifiedClause:
         """Create IdentifiedClause from content segment"""
@@ -748,6 +713,25 @@ class ClauseStructureIdentifier:
         
         return None
     
+    def _is_likely_clause(self, text: str) -> bool:
+        """Determine if text segment is likely a legal clause"""
+        text_lower = text.lower()
+        
+        legal_indicators = [
+            r'\b(?:shall|must|will|agrees?|undertakes?)\b',
+            r'\b(?:party|parties|agreement|contract|provider|client)\b',
+            r'\b(?:liable|liability|responsible|damages)\b',
+            r'\b(?:breach|default|violation|termination)\b',
+            r'\b(?:confidential|proprietary|intellectual\s+property)\b',
+            r'\b(?:payment|pay|fees?|costs?|compensation)\b',
+            r'\b(?:governing\s+law|jurisdiction|dispute)\b',
+        ]
+        
+        indicator_count = sum(1 for pattern in legal_indicators 
+                            if re.search(pattern, text_lower))
+        
+        return indicator_count >= 2 and 50 <= len(text) <= 2000
+    
     def _get_clause_type_distribution(self, clauses: List[IdentifiedClause]) -> Dict[str, int]:
         """Get distribution of clause types"""
         distribution = {}
@@ -755,3 +739,66 @@ class ClauseStructureIdentifier:
             clause_type = clause.clause_type.value
             distribution[clause_type] = distribution.get(clause_type, 0) + 1
         return distribution
+
+    def _identify_relationships(self, clauses: List[IdentifiedClause], content: str) -> List[ClauseRelationship]:
+        """Identify relationships between clauses"""
+        relationships = []
+        
+        # Map clauses by ID and potential reference keys (e.g., numbering)
+        clause_map = {c.id: c for c in clauses}
+        numbering_map = {c.numbering: c for c in clauses if c.numbering}
+        
+        for clause in clauses:
+            # 1. Identify relationships from explicit references
+            for ref in clause.references:
+                # Try to match reference to a clause
+                target_clause = self._find_target_clause(ref, numbering_map)
+                if target_clause and target_clause.id != clause.id:
+                    relationships.append(ClauseRelationship(
+                        source_clause_id=clause.id,
+                        target_clause_id=target_clause.id,
+                        relationship_type=RelationshipType.REFERENCES,
+                        confidence=0.8,
+                        description=f"Explicit reference to {ref}"
+                    ))
+            
+            # 2. Identify relationships from LLM analysis
+            if clause.metadata.get('llm_analysis'):
+                llm_refs = clause.metadata['llm_analysis'].get('references', [])
+                for ref in llm_refs:
+                    target_clause = self._find_target_clause(ref, numbering_map)
+                    if target_clause and target_clause.id != clause.id:
+                        # Check if relationship already exists
+                        exists = any(r.source_clause_id == clause.id and 
+                                   r.target_clause_id == target_clause.id 
+                                   for r in relationships)
+                        if not exists:
+                            relationships.append(ClauseRelationship(
+                                source_clause_id=clause.id,
+                                target_clause_id=target_clause.id,
+                                relationship_type=RelationshipType.REFERENCES,
+                                confidence=0.7,
+                                description=f"LLM identified reference to {ref}"
+                            ))
+
+        return relationships
+
+    def _find_target_clause(self, reference: str, numbering_map: Dict[str, IdentifiedClause]) -> Optional[IdentifiedClause]:
+        """Find the target clause for a given reference string"""
+        # Clean up reference string
+        clean_ref = reference.strip()
+        
+        # Direct match in numbering map
+        if clean_ref in numbering_map:
+            return numbering_map[clean_ref]
+            
+        # Try to extract number from reference (e.g. "Section 1.2" -> "1.2")
+        # This is a simple heuristic, could be improved
+        parts = clean_ref.split()
+        for part in parts:
+            # Remove trailing punctuation
+            part = part.rstrip('.,;:')
+            if part in numbering_map:
+                return numbering_map[part]
+                
+        return None

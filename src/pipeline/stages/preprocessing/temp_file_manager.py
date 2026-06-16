@@ -47,6 +47,7 @@ class TempFileManager:
         self.logger = get_pipeline_logger()
         self._temp_files: Dict[str, TempFileInfo] = {}
         self._lock = threading.Lock()
+        self._counter = 0
         self._cleanup_thread: Optional[threading.Thread] = None
         self._shutdown_event = threading.Event()
         
@@ -63,7 +64,15 @@ class TempFileManager:
             max_age_hours=max_age_hours,
             max_size_mb=max_total_size_mb
         )
-    
+
+    def __enter__(self):
+        """Context manager enter"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit with cleanup"""
+        self.shutdown()
+
     def _start_cleanup_thread(self):
         """Start the automatic cleanup thread"""
         if self._cleanup_thread is None or not self._cleanup_thread.is_alive():
@@ -98,8 +107,12 @@ class TempFileManager:
         """Create a managed temporary file"""
         
         # Generate unique filename
+        with self._lock:
+            self._counter += 1
+            current_counter = self._counter
+            
         timestamp = int(time.time() * 1000)  # milliseconds
-        filename = f"{prefix}{timestamp}{suffix}"
+        filename = f"{prefix}{timestamp}_{current_counter}{suffix}"
         file_path = os.path.join(self.managed_temp_dir, filename)
         
         # Create the file

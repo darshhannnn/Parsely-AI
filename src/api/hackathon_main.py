@@ -14,6 +14,14 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+# Configure logging first
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Optional rate limiting - gracefully handle if slowapi is not available
 try:
     from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -23,10 +31,6 @@ try:
 except ImportError:
     logger.warning("slowapi not available - rate limiting disabled")
     RATE_LIMITING_AVAILABLE = False
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Security configuration
 security = HTTPBearer()
@@ -42,9 +46,7 @@ if not GOOGLE_API_KEY:
 
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.0-flash")
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
 
 app = FastAPI(
     title="LLM Document Processing - Hackathon API",
@@ -74,7 +76,7 @@ class HackathonRequest(BaseModel):
     """Request model matching hackathon specification"""
     documents: str = Field(
         ..., 
-        description="PDF blob URL from Azure storage"
+        description="Document blob URL from Azure storage (supports PDF, DOCX, and Email formats)"
     )
     questions: List[str] = Field(
         ..., 
@@ -118,43 +120,91 @@ def verify_bearer_token(credentials: HTTPAuthorizationCredentials = Depends(secu
         )
     return credentials.credentials
 
-def download_pdf_from_blob_url(blob_url: str) -> str:
-    """Download PDF from Azure blob URL and return local file path"""
+def download_document_from_blob_url(blob_url: str) -> tuple[str, str]:
+    """Download document from Azure blob URL and return local file path and detected format"""
     try:
-        logger.info(f"Downloading PDF from blob URL: {blob_url[:100]}...")
+        logger.info(f"Downloading document from blob URL: {blob_url[:100]}...")
         
-        # Download the PDF file
+        # Download the document file
         response = requests.get(blob_url, timeout=30)
         response.raise_for_status()
         
+        # Detect content type from headers and content
+        content_type = response.headers.get('content-type', '').lower()
+        content = response.content
+        
+        # Detect format from content and URL
+        document_format = detect_document_format(content, blob_url, content_type)
+        
+        # Determine file extension
+        if document_format == 'pdf':
+            suffix = '.pdf'
+        elif document_format == 'docx':
+            suffix = '.docx'
+        elif document_format == 'email':
+            suffix = '.eml'
+        else:
+            suffix = '.pdf'  # Default fallback
+        
         # Save to temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
-            temp_file.write(response.content)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+            temp_file.write(content)
             temp_file_path = temp_file.name
         
-        logger.info(f"PDF downloaded successfully to: {temp_file_path}")
-        return temp_file_path
+        logger.info(f"Document downloaded successfully to: {temp_file_path} (format: {document_format})")
+        return temp_file_path, document_format
         
     except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to download PDF: {str(e)}")
+        logger.error(f"Failed to download document: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to download PDF from blob URL: {str(e)}"
+            detail=f"Failed to download document from blob URL: {str(e)}"
         )
     except Exception as e:
-        logger.error(f"Unexpected error downloading PDF: {str(e)}")
+        logger.error(f"Unexpected error downloading document: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Unexpected error downloading PDF: {str(e)}"
+            detail=f"Unexpected error downloading document: {str(e)}"
         )
 
-def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[str]:
+
+def detect_document_format(content: bytes, url: str, content_type: str) -> str:
+    """Detect document format from content, URL, and content type"""
+    
+    # Check file signature (magic numbers) first
+    if content.startswith(b'%PDF'):
+        return 'pdf'
+    elif content.startswith(b'PK\x03\x04') and b'word/' in content[:1000]:
+        return 'docx'
+    elif content.startswith((b'Return-Path:', b'Received:', b'From:', b'To:', b'Subject:')):
+        return 'email'
+    
+    # Check content type
+    if 'pdf' in content_type:
+        return 'pdf'
+    elif 'wordprocessingml' in content_type or 'msword' in content_type:
+        return 'docx'
+    elif 'rfc822' in content_type or content_type == 'message/rfc822':
+        return 'email'
+    
+    # Check URL extension as fallback
+    url_lower = url.lower()
+    if url_lower.endswith('.pdf'):
+        return 'pdf'
+    elif url_lower.endswith(('.docx', '.doc')):
+        return 'docx'
+    elif url_lower.endswith(('.eml', '.msg')):
+        return 'email'
+    
+    # Default to PDF
+    return 'pdf'
+
+def process_document_and_questions(document_path: str, document_format: str, questions: List[str]) -> List[str]:
     """
-    Process PDF document and answer questions using the complete 6-stage pipeline.
+    Process multi-format document and answer questions using the enhanced 6-stage pipeline.
     """
     try:
         import google.generativeai as genai
-        import PyPDF2
         
         # Configure Gemini client
         if not GOOGLE_API_KEY:
@@ -165,34 +215,53 @@ def process_document_and_questions(pdf_path: str, questions: List[str]) -> List[
         genai.configure(api_key=GOOGLE_API_KEY)
         model = genai.GenerativeModel(LLM_MODEL)
         
-        logger.info(f"Starting 6-stage pipeline for document: {pdf_path}")
+        logger.info(f"Starting enhanced 6-stage pipeline for {document_format} document: {document_path}")
         
-        # Stage 1: Input Documents - Extract text from PDF
-        logger.info("Stage 1: Extracting text from PDF...")
+        # Stage 1: Input Documents - Extract text using enhanced extractors
+        logger.info(f"Stage 1: Extracting text from {document_format} document...")
         document_text = ""
+        metadata = {}
+        
         try:
-            with open(pdf_path, 'rb') as file:
-                pdf_reader = PyPDF2.PdfReader(file)
-                for page in pdf_reader.pages:
-                    text = page.extract_text()
-                    if text:
-                        document_text += text + "\n"
+            if document_format == 'pdf':
+                document_text, metadata = extract_pdf_content_enhanced(document_path)
+            elif document_format == 'docx':
+                document_text, metadata = extract_docx_content_enhanced(document_path)
+            elif document_format == 'email':
+                document_text, metadata = extract_email_content_enhanced(document_path)
+            else:
+                # Fallback to basic PDF processing
+                document_text, metadata = extract_pdf_content_basic(document_path)
+                
         except Exception as e:
-            logger.error(f"Error extracting PDF text: {str(e)}")
-            return [f"Unable to process PDF document: {str(e)}" for _ in questions]
+            logger.error(f"Error extracting {document_format} content: {str(e)}")
+            return [f"Unable to process {document_format} document: {str(e)}" for _ in questions]
         
         if not document_text.strip():
             return ["Document appears to be empty or unreadable" for _ in questions]
         
-        # Stages 2-6: Process each question with simplified pipeline
+        logger.info(f"Extracted {len(document_text)} characters from {document_format} document")
+        
+        # Stages 2-6: Process each question with enhanced context
         answers = []
         for question in questions:
             logger.info(f"Processing question: {question}")
             
             try:
-                # Simple approach: Use full document as context
+                # Enhanced approach: Use document structure and metadata
+                context_info = ""
+                if metadata.get('sections'):
+                    context_info += f"Document has {len(metadata['sections'])} sections: {', '.join(metadata['sections'].keys())}\n"
+                if metadata.get('document_type'):
+                    context_info += f"Document type: {metadata['document_type']}\n"
+                if metadata.get('word_count'):
+                    context_info += f"Word count: {metadata['word_count']}\n"
+                
                 prompt = f"""
-You are an expert document analyzer. Based on the provided document content, please answer the question accurately and professionally.
+You are an expert document analyzer with access to a {document_format.upper()} document. Based on the provided document content and structure, please answer the question accurately and professionally.
+
+Document Information:
+{context_info}
 
 Document Content:
 {document_text[:4000]}  # Limit context to avoid token limits
@@ -201,9 +270,10 @@ Question: {question}
 
 Instructions:
 1. Focus only on information present in the provided document content
-2. If information is not available, clearly state: "Based on the provided document content, this information is not available."
-3. Be precise and factual
-4. Keep the answer concise and professional
+2. Use the document structure and metadata to provide more accurate answers
+3. If information is not available, clearly state: "Based on the provided document content, this information is not available."
+4. Be precise and factual, citing specific sections when relevant
+5. Keep the answer concise and professional
 
 Answer:"""
 
@@ -230,6 +300,183 @@ Answer:"""
             detail=f"Error processing document and questions: {str(e)}"
         )
 
+
+def extract_pdf_content_enhanced(pdf_path: str) -> tuple[str, dict]:
+    """Extract PDF content using enhanced extractor"""
+    try:
+        import PyPDF2
+        
+        document_text = ""
+        pages = []
+        
+        with open(pdf_path, 'rb') as file:
+            pdf_reader = PyPDF2.PdfReader(file)
+            for page_num, page in enumerate(pdf_reader.pages, 1):
+                page_text = page.extract_text()
+                if page_text:
+                    pages.append(page_text)
+                    document_text += page_text + "\n"
+        
+        metadata = {
+            'document_type': 'PDF',
+            'page_count': len(pages),
+            'word_count': len(document_text.split()),
+            'sections': {'full_document': document_text},
+            'extraction_method': 'Enhanced PyPDF2'
+        }
+        
+        return document_text, metadata
+        
+    except Exception as e:
+        logger.error(f"Enhanced PDF extraction failed: {str(e)}")
+        raise
+
+
+def extract_docx_content_enhanced(docx_path: str) -> tuple[str, dict]:
+    """Extract DOCX content using enhanced extractor"""
+    try:
+        from docx import Document
+        
+        doc = Document(docx_path)
+        
+        paragraphs = []
+        sections = {}
+        current_section = "Introduction"
+        section_content = []
+        
+        for para in doc.paragraphs:
+            if para.text.strip():
+                paragraphs.append(para.text.strip())
+                
+                # Detect headings (basic heuristic)
+                if para.style.name.startswith('Heading'):
+                    # Save previous section
+                    if section_content:
+                        sections[current_section] = '\n'.join(section_content)
+                    
+                    # Start new section
+                    current_section = para.text.strip()
+                    section_content = []
+                else:
+                    section_content.append(para.text.strip())
+        
+        # Save final section
+        if section_content:
+            sections[current_section] = '\n'.join(section_content)
+        
+        document_text = '\n\n'.join(paragraphs)
+        
+        metadata = {
+            'document_type': 'DOCX',
+            'paragraph_count': len(paragraphs),
+            'section_count': len(sections),
+            'word_count': len(document_text.split()),
+            'sections': sections,
+            'extraction_method': 'Enhanced python-docx'
+        }
+        
+        # Add document properties if available
+        if hasattr(doc, 'core_properties'):
+            props = doc.core_properties
+            metadata['document_properties'] = {
+                'title': props.title,
+                'author': props.author,
+                'subject': props.subject,
+                'created': props.created.isoformat() if props.created else None,
+                'modified': props.modified.isoformat() if props.modified else None
+            }
+        
+        return document_text, metadata
+        
+    except Exception as e:
+        logger.error(f"Enhanced DOCX extraction failed: {str(e)}")
+        raise
+
+
+def extract_email_content_enhanced(email_path: str) -> tuple[str, dict]:
+    """Extract email content using enhanced extractor"""
+    try:
+        import email
+        from email import policy
+        
+        with open(email_path, 'rb') as f:
+            msg = email.message_from_bytes(f.read(), policy=policy.default)
+        
+        # Extract headers
+        headers = {
+            'subject': msg.get('Subject', ''),
+            'from': msg.get('From', ''),
+            'to': msg.get('To', ''),
+            'date': msg.get('Date', ''),
+        }
+        
+        # Extract body content
+        body_parts = []
+        sections = {}
+        
+        if msg.is_multipart():
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                if content_type == 'text/plain':
+                    content = part.get_content()
+                    if content and content.strip():
+                        body_parts.append(content.strip())
+        else:
+            content = msg.get_content()
+            if content and content.strip():
+                body_parts.append(content.strip())
+        
+        # Combine all text content
+        header_text = f"Subject: {headers['subject']}\nFrom: {headers['from']}\nTo: {headers['to']}\nDate: {headers['date']}\n"
+        body_text = '\n\n'.join(body_parts)
+        document_text = header_text + '\n\n' + body_text
+        
+        # Store sections
+        sections['headers'] = header_text
+        sections['body'] = body_text
+        
+        metadata = {
+            'document_type': 'Email',
+            'headers': headers,
+            'is_multipart': msg.is_multipart(),
+            'word_count': len(document_text.split()),
+            'sections': sections,
+            'extraction_method': 'Enhanced email.parser'
+        }
+        
+        return document_text, metadata
+        
+    except Exception as e:
+        logger.error(f"Enhanced email extraction failed: {str(e)}")
+        raise
+
+
+def extract_pdf_content_basic(pdf_path: str) -> tuple[str, dict]:
+    """Basic PDF extraction fallback"""
+    try:
+        import PyPDF2
+        
+        document_text = ""
+        with open(pdf_path, 'rb') as file:
+            pdf_reader = PyPDF2.PdfReader(file)
+            for page in pdf_reader.pages:
+                text = page.extract_text()
+                if text:
+                    document_text += text + "\n"
+        
+        metadata = {
+            'document_type': 'PDF',
+            'word_count': len(document_text.split()),
+            'sections': {'full_document': document_text},
+            'extraction_method': 'Basic PyPDF2'
+        }
+        
+        return document_text, metadata
+        
+    except Exception as e:
+        logger.error(f"Basic PDF extraction failed: {str(e)}")
+        raise
+
 @app.post("/hackrx/run", response_model=HackathonResponse, 
          summary="Process document and answer questions",
          responses={
@@ -243,11 +490,13 @@ async def hackrx_run(
     token: str = Depends(verify_bearer_token)
 ) -> HackathonResponse:
     """
-    Main hackathon endpoint that processes PDF documents from blob URLs and answers questions.
+    Main hackathon endpoint that processes multi-format documents from blob URLs and answers questions.
     
-    This endpoint implements the 6-stage pipeline:
-    1. Input Documents - Download PDF from blob URL
-    2. LLM Parser - Extract structured query information
+    Supported formats: PDF, DOCX, Email (.eml)
+    
+    This endpoint implements the enhanced 6-stage pipeline:
+    1. Input Documents - Download and detect document format from blob URL
+    2. LLM Parser - Extract structured content with format-specific processing
     3. Embedding Search - FAISS/Pinecone retrieval for semantic similarity
     4. Clause Matching - Semantic similarity scoring and relevance ranking
     5. Logic Evaluation - Decision processing with domain-specific business rules
@@ -258,12 +507,12 @@ async def hackrx_run(
     try:
         logger.info(f"Processing hackathon request with {len(request.questions)} questions")
         
-        # Stage 1: Input Documents - Download PDF from blob URL
-        pdf_path = download_pdf_from_blob_url(request.documents)
+        # Stage 1: Input Documents - Download document from blob URL
+        document_path, document_format = download_document_from_blob_url(request.documents)
         
         try:
             # Stages 2-6: Process document and answer questions
-            answers = process_document_and_questions(pdf_path, request.questions)
+            answers = process_document_and_questions(document_path, document_format, request.questions)
             
             processing_time = (datetime.now() - start_time).total_seconds()
             logger.info(f"Successfully processed request in {processing_time:.2f} seconds")
@@ -273,10 +522,10 @@ async def hackrx_run(
         finally:
             # Clean up temporary file
             try:
-                os.unlink(pdf_path)
-                logger.info(f"Cleaned up temporary file: {pdf_path}")
+                os.unlink(document_path)
+                logger.info(f"Cleaned up temporary file: {document_path}")
             except Exception as e:
-                logger.warning(f"Failed to clean up temporary file {pdf_path}: {str(e)}")
+                logger.warning(f"Failed to clean up temporary file {document_path}: {str(e)}")
                 
     except HTTPException:
         # Re-raise HTTP exceptions as-is
@@ -297,7 +546,7 @@ def health():
         "version": "1.0",
         "endpoints": ["/hackrx/run", "/health"],
         "authentication": "Bearer token required",
-        "supported_formats": ["PDF via blob URL"],
+        "supported_formats": ["PDF", "DOCX", "Email (.eml)"],
         "pipeline_stages": [
             "Input Documents",
             "LLM Parser", 
@@ -314,7 +563,7 @@ def root():
     return {
         "message": "LLM Document Processing - Hackathon API",
         "version": "1.0",
-        "description": "Intelligent document query processing with PDF blob URL support",
+        "description": "Intelligent multi-format document query processing with blob URL support",
         "main_endpoint": "/hackrx/run",
         "documentation": "/docs",
         "health_check": "/health"

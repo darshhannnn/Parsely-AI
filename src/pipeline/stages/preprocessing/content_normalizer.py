@@ -243,10 +243,10 @@ class ContentNormalizer:
         """Normalize quote characters"""
         quote_mappings = {
             # Smart quotes to straight quotes
-            '"': '"',  # Left double quotation mark
-            '"': '"',  # Right double quotation mark
-            ''': "'",  # Left single quotation mark
-            ''': "'",  # Right single quotation mark
+            '“': '"',  # Left double quotation mark
+            '”': '"',  # Right double quotation mark
+            '‘': "'",  # Left single quotation mark
+            '’': "'",  # Right single quotation mark
             '„': '"',  # Double low-9 quotation mark
             '‚': "'",  # Single low-9 quotation mark
             '«': '"',  # Left-pointing double angle quotation mark
@@ -416,8 +416,9 @@ class ContentNormalizer:
             )
         
         # Quote consistency improvement
-        original_quote_variety = len(set(char for char in original if char in '""''„‚«»‹›'))
-        normalized_quote_variety = len(set(char for char in normalized if char in '""''„‚«»‹›'))
+        quote_chars = '“”‘’„‚«»‹›'
+        original_quote_variety = len(set(char for char in original if char in quote_chars))
+        normalized_quote_variety = len(set(char for char in normalized if char in quote_chars))
         if original_quote_variety > 0:
             improvements['quote_consistency'] = max(
                 0, (original_quote_variety - normalized_quote_variety) / original_quote_variety

@@ -119,8 +119,27 @@ def sanitize_for_logging(data: Any, max_length: int = 200) -> Any:
     elif isinstance(data, list):
         return [sanitize_for_logging(item, max_length) for item in data[:10]]  # Limit list size
     
+    elif hasattr(data, '__dict__'):
+        # Handle dataclass and other objects with __dict__
+        try:
+            return sanitize_for_logging(data.__dict__, max_length)
+        except:
+            return str(data)[:max_length]
+    
+    elif hasattr(data, '__dataclass_fields__'):
+        # Handle dataclass objects specifically
+        try:
+            import dataclasses
+            return sanitize_for_logging(dataclasses.asdict(data), max_length)
+        except:
+            return str(data)[:max_length]
+    
     else:
-        return data
+        # For other types, convert to string and truncate
+        try:
+            return str(data)[:max_length]
+        except:
+            return "[UNSERIALIZABLE]"
 
 
 def timing_decorator(func):

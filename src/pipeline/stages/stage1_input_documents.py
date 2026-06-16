@@ -112,6 +112,10 @@ class DocumentDownloader:
             
             return document_content
             
+        except (DocumentSizeError, ValidationError):
+            # Re-raise domain-specific exceptions directly
+            raise
+            
         except requests.exceptions.Timeout:
             raise TimeoutError(f"Download timeout after {self.timeout_seconds} seconds", self.timeout_seconds, "download")
         
@@ -164,8 +168,7 @@ class DocumentFormatDetector:
         'application/pdf': DocumentType.PDF,
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document': DocumentType.DOCX,
         'application/msword': DocumentType.DOCX,  # Legacy .doc files
-        'message/rfc822': DocumentType.EMAIL,
-        'text/plain': DocumentType.EMAIL  # Sometimes emails are served as text/plain
+        'message/rfc822': DocumentType.EMAIL
     }
     
     def __init__(self):
@@ -251,6 +254,9 @@ class ContentExtractor:
                     return self._extract_email_content(document)
                 else:
                     raise UnsupportedFormatError(document_type.value, [fmt.value for fmt in DocumentType])
+        
+        except UnsupportedFormatError:
+            raise
         
         except Exception as e:
             raise ContentExtractionError(f"Failed to extract content: {e}", document_type.value)

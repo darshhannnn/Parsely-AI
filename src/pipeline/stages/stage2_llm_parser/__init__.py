@@ -33,9 +33,9 @@ from .clause_identifier import (
     LegalPatternMatcher,
     LLMClauseAnalyzer
 )
-# from .prompt_templates import PromptTemplateManager, PromptTemplate
-# from .response_parser import LLMResponseParser, ParsedLLMResponse
-# from .llm_parser import Stage2LLMParser
+from .prompt_templates import PromptTemplateManager, PromptTemplate
+from .response_parser import LLMResponseParser, ParsedLLMResponse
+from .llm_parser import Stage2LLMParser
 
 __all__ = [
     # LLM Integration
@@ -47,7 +47,7 @@ __all__ = [
     'GoogleGeminiProvider',
     'OpenAIProvider',
     'LLMProviderFactory',
-    
+
     # Content Chunking
     'IntelligentContentChunker',
     'ChunkingConfig',
@@ -57,7 +57,7 @@ __all__ = [
     'ChunkMetadata',
     'DocumentStructureAnalyzer',
     'SemanticChunker',
-    
+
     # Clause Identification
     'ClauseStructureIdentifier',
     'ClauseType',
@@ -68,10 +68,10 @@ __all__ = [
     'ClauseRelationship',
     'LegalPatternMatcher',
     'LLMClauseAnalyzer',
-    
-    # 'PromptTemplateManager', 
-    # 'PromptTemplate',
-    # 'LLMResponseParser',
-    # 'ParsedLLMResponse',
-    # 'Stage2LLMParser'
+
+    'PromptTemplateManager', 
+    'PromptTemplate',
+    'LLMResponseParser',
+    'ParsedLLMResponse',
+    'Stage2LLMParser'
 ]

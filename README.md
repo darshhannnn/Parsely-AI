@@ -162,18 +162,55 @@ Query → Gemini Parser → Semantic Search → Gemini Evaluator → Structured 
 
 ## 🧪 Testing
 
-### Run All Tests
+### Automated Testing (CI/CD)
+The project includes comprehensive automated testing via GitHub Actions:
+
+- **Continuous Integration**: Runs on every push and pull request
+- **Multi-Python Testing**: Tests on Python 3.8, 3.9, and 3.10
+- **Code Quality Checks**: Black, Flake8, isort, Bandit, and mypy
+- **Security Scanning**: Dependency and code vulnerability checks
+- **Docker Validation**: Container build and health testing
+- **Coverage Reporting**: Minimum 80% test coverage required
+
+### Local Testing
+
+#### Run All Tests
 ```bash
-python test_gemini_setup.py
+# Comprehensive test suite
+pytest tests/ -v --cov=src --cov-report=html
+
+# Quick local CI simulation
+python scripts/local_ci_test.sh  # Linux/Mac
+python scripts/test_workflows.py  # Cross-platform
 ```
 
-### Test Individual Components
+#### Test Individual Components
 ```bash
 # Test query parsing
 python -c "from src.query_parsing.gemini_query_parser import GeminiQueryParser; parser = GeminiQueryParser(); print(parser.parse_query('test query'))"
 
-# Test API
+# Test API endpoints
 curl -X POST "http://localhost:8000/process_claim" -H "Content-Type: application/json" -d '{"query": "test claim"}'
+
+# Test Docker build
+docker build -t parsely-ai-test .
+docker run --rm -p 8000:8000 parsely-ai-test
+```
+
+#### Code Quality Checks
+```bash
+# Format code
+black src/ tests/ --line-length 88
+
+# Sort imports
+isort src/ tests/ --profile black
+
+# Lint code
+flake8 src/ tests/ --max-line-length=88
+
+# Security scan
+bandit -r src/
+safety check
 ```
 
 ## 🔧 Configuration
@@ -206,11 +243,18 @@ ENABLE_QUERY_CACHING=true
 2. **Import Errors**: Ensure all dependencies are installed: `pip install -r requirements.txt`
 3. **No Policy Documents**: Add documents to `data/policies/` directory
 4. **spaCy Model Missing**: Run `python -m spacy download en_core_web_sm`
+5. **CI/CD Failures**: Check [CI/CD Setup Guide](docs/CI_CD_SETUP.md) for troubleshooting
 
 ### Getting Help
 1. Run the comprehensive test: `python test_gemini_setup.py`
-2. Check the logs for detailed error messages
-3. Verify your API key at [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Check environment configuration: `python scripts/check_environment.py`
+3. Review CI/CD pipeline status in GitHub Actions
+4. Check the logs for detailed error messages
+5. Verify your API key at [Google AI Studio](https://makersuite.google.com/app/apikey)
+
+### CI/CD Pipeline Status
+[![CI Pipeline](https://github.com/your-org/parsely-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/parsely-ai/actions/workflows/ci.yml)
+[![Release Pipeline](https://github.com/your-org/parsely-ai/actions/workflows/release.yml/badge.svg)](https://github.com/your-org/parsely-ai/actions/workflows/release.yml)
 
 ## 🎯 Next Steps
 
