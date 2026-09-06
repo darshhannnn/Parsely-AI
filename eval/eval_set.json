@@ -1,0 +1,302 @@
+{
+  "description": "Parsely AI retrieval evaluation set. Each item pins a question to one source document with a gold answer and an evidence string that must appear in good retrieved context. Hit rate = fraction of questions whose evidence string is contained in the retrieved context.",
+  "budget_chars_default": 6000,
+  "items": [
+    {
+      "id": "bajaj-001",
+      "document": "BAJHLIP23020V012223",
+      "question": "What is the waiting period for pre-existing diseases under this policy?",
+      "expected_answer": "36 months of continuous coverage from the date of inception of the first Global Health Care Policy",
+      "evidence": "until the expiry of 36 months of continuous coverage",
+      "category": "waiting_period"
+    },
+    {
+      "id": "bajaj-002",
+      "document": "BAJHLIP23020V012223",
+      "question": "How long is the specific disease/procedure waiting period?",
+      "expected_answer": "24 months of continuous coverage after the date of inception",
+      "evidence": "excluded until the expiry of 24 months of continuous coverage",
+      "category": "waiting_period"
+    },
+    {
+      "id": "bajaj-003",
+      "document": "BAJHLIP23020V012223",
+      "question": "Does the specific disease waiting period apply to accidents?",
+      "expected_answer": "No, the exclusion is not applicable for claims arising due to an Accident",
+      "evidence": "shall not be applicable for claims arising due to an Accident",
+      "category": "waiting_period"
+    },
+    {
+      "id": "bajaj-004",
+      "document": "BAJHLIP23020V012223",
+      "question": "What happens to waiting periods when the Sum Insured is enhanced?",
+      "expected_answer": "The exclusion applies afresh to the extent of the Sum Insured increase",
+      "evidence": "exclusion shall apply afresh",
+      "category": "waiting_period"
+    },
+    {
+      "id": "bajaj-005",
+      "document": "BAJHLIP23020V012223",
+      "question": "Which diseases are on the 24-month specific waiting period list?",
+      "expected_answer": "Includes gastrointestinal ulcers, cataracts, fistula, macular degeneration, benign prostatic hypertrophy, hernia of all types, haemorrhoids and more",
+      "evidence": "Any type gastrointestinal ulcers",
+      "category": "waiting_period"
+    },
+    {
+      "id": "bajaj-006",
+      "document": "BAJHLIP23020V012223",
+      "question": "Is benign prostatic hypertrophy subject to a waiting period?",
+      "expected_answer": "Yes, it is on the list of specific diseases/procedures with a 24-month waiting period",
+      "evidence": "Benign prostatic hypertrophy",
+      "category": "waiting_period"
+    },
+    {
+      "id": "bajaj-007",
+      "document": "BAJHLIP23020V012223",
+      "question": "How many days before hospitalization are pre-hospitalization medical expenses covered?",
+      "expected_answer": "Medical expenses incurred during the 60 days immediately before hospitalization",
+      "evidence": "incurred during the 60 days immediately before You were Hospitalized",
+      "category": "benefit"
+    },
+    {
+      "id": "bajaj-008",
+      "document": "BAJHLIP23020V012223",
+      "question": "What is the grace period for renewing this policy?",
+      "expected_answer": "A grace period of 30 days to maintain continuity of benefits",
+      "evidence": "Grace Period of 30 days to maintain continuity",
+      "category": "renewal"
+    },
+    {
+      "id": "bajaj-009",
+      "document": "BAJHLIP23020V012223",
+      "question": "Am I covered during the renewal grace period?",
+      "expected_answer": "No, coverage is not available during the grace period",
+      "evidence": "Coverage is not available during the grace period",
+      "category": "renewal"
+    },
+    {
+      "id": "bajaj-010",
+      "document": "BAJHLIP23020V012223",
+      "question": "How long is the grace period for paying an instalment premium?",
+      "expected_answer": "A grace period of 15 days is given to pay the instalment premium due",
+      "evidence": "Grace Period of 15 days would be given",
+      "category": "renewal"
+    },
+    {
+      "id": "bajaj-011",
+      "document": "BAJHLIP23020V012223",
+      "question": "Within how many days of discharge must claim documentation be submitted?",
+      "expected_answer": "Within 30 days of discharge from a Hospital",
+      "evidence": "within 30 days of discharge from a Hospital",
+      "category": "claim_process"
+    },
+    {
+      "id": "bajaj-012",
+      "document": "BAJHLIP23020V012223",
+      "question": "Are organ donor treatment costs covered?",
+      "expected_answer": "Yes, up to the limits specified in the Policy Schedule, for harvesting of the donated organ",
+      "evidence": "treatment for harvesting of the donated organ",
+      "category": "benefit"
+    },
+    {
+      "id": "bajaj-013",
+      "document": "BAJHLIP23020V012223",
+      "question": "Is a preventive health check-up included in the policy?",
+      "expected_answer": "Yes, an Annual Preventive Health Check-up is entitled after each renewal, reimbursed per specified limits",
+      "evidence": "entitled for an Annual Preventive Health Check",
+      "category": "benefit"
+    },
+    {
+      "id": "bajaj-014",
+      "document": "BAJHLIP23020V012223",
+      "question": "What is the definition of Cumulative Bonus?",
+      "expected_answer": "Any increase or addition in the Sum Insured granted by the insurer without an associated increase in premium",
+      "evidence": "granted by the insurer without an associated increase in premium",
+      "category": "definition"
+    },
+    {
+      "id": "bajaj-015",
+      "document": "BAJHLIP23020V012223",
+      "question": "Does a co-payment reduce the Sum Insured?",
+      "expected_answer": "No, a Co-Payment does not reduce the Sum Insured",
+      "evidence": "A Co-Payment does not reduce the Sum Insured",
+      "category": "cost_sharing"
+    },
+    {
+      "id": "bajaj-016",
+      "document": "BAJHLIP23020V012223",
+      "question": "What counts as maternity expenses under this policy?",
+      "expected_answer": "Medical treatment expenses traceable to childbirth, including complicated deliveries and caesarean sections, and lawful medical termination of pregnancy",
+      "evidence": "medical treatment expenses traceable to childbirth",
+      "category": "definition"
+    },
+    {
+      "id": "bajaj-017",
+      "document": "BAJHLIP23020V012223",
+      "question": "How much notice will the company give if it withdraws this policy?",
+      "expected_answer": "Insured persons will be intimated 90 days prior to expiry of the Policy",
+      "evidence": "90 days prior to expiry of the Policy",
+      "category": "renewal"
+    },
+    {
+      "id": "bajaj-018",
+      "document": "BAJHLIP23020V012223",
+      "question": "What does Room Rent mean in this policy?",
+      "expected_answer": "The amount charged by a Hospital towards Room and Boarding expenses, including associated medical expenses",
+      "evidence": "towards Room and Boarding expenses",
+      "category": "definition"
+    },
+    {
+      "id": "bajaj-019",
+      "document": "BAJHLIP23020V012223",
+      "question": "What is a Day Care Centre?",
+      "expected_answer": "An institution established for Day Care Treatment of Illness or injuries, registered as a hospital with local authorities",
+      "evidence": "institution established for Day Care Treatment",
+      "category": "definition"
+    },
+    {
+      "id": "bajaj-020",
+      "document": "BAJHLIP23020V012223",
+      "question": "Until when are post-hospitalization medical expenses covered?",
+      "expected_answer": "During a pre-defined number of days immediately after the Insured is discharged from the Hospital, for the same condition",
+      "evidence": "days immediately after the Insured is discharged from the Hospital",
+      "category": "benefit"
+    },
+    {
+      "id": "bajaj-021",
+      "document": "BAJHLIP23020V012223",
+      "question": "When is local road ambulance cover available?",
+      "expected_answer": "Ambulance transport required for an Emergency or out of medical necessity, to the nearest appropriate hospital",
+      "evidence": "required for an Emergency or out of medical necessity",
+      "category": "benefit"
+    },
+    {
+      "id": "hdfc-001",
+      "document": "HDFHLIP23024V072223",
+      "question": "What is the Grace Period in this policy?",
+      "expected_answer": "The period immediately following the premium due date during which payment can be made to renew the policy without loss of continuity benefits",
+      "evidence": "payment can be made to renew or continue a Policy in force without loss of continuity benefits",
+      "category": "definition"
+    },
+    {
+      "id": "hdfc-002",
+      "document": "HDFHLIP23024V072223",
+      "question": "What is Cumulative Bonus and how is it granted?",
+      "expected_answer": "Any increase in the Sum Insured granted by the insurer without an associated increase in premium",
+      "evidence": "any increase in the Sum Insured granted by the insurer without an associated increase in premium",
+      "category": "definition"
+    },
+    {
+      "id": "hdfc-003",
+      "document": "HDFHLIP23024V072223",
+      "question": "What does a co-payment mean for the policyholder?",
+      "expected_answer": "The policyholder bears a specified percentage of the admissible claim amount",
+      "evidence": "will bear a specif ied percentage of the admissible claim amount",
+      "category": "cost_sharing"
+    },
+    {
+      "id": "hdfc-004",
+      "document": "HDFHLIP23024V072223",
+      "question": "How is a medical Emergency defined?",
+      "expected_answer": "A condition requiring immediate care by a medical practitioner to prevent death or serious long-term impairment",
+      "evidence": "requires immediate care by a medical practitioner to prevent death or serious long term impairment",
+      "category": "definition"
+    },
+    {
+      "id": "hdfc-005",
+      "document": "HDFHLIP23024V072223",
+      "question": "What qualifies as a Hospital under this policy?",
+      "expected_answer": "An institution established for in-patient care meeting the policy's registration and staffing criteria",
+      "evidence": "Hospital means any institution established for in",
+      "category": "definition"
+    },
+    {
+      "id": "hdfc-006",
+      "document": "HDFHLIP23024V072223",
+      "question": "Are kidney and bladder stones subject to a specific waiting period?",
+      "expected_answer": "Yes, stone treatment is in the listed specific conditions subject to a waiting period",
+      "evidence": "Kidney stone, Urinary bladder stone",
+      "category": "waiting_period"
+    },
+    {
+      "id": "icici-001",
+      "document": "ICIHLIP22012V012223",
+      "question": "What base co-payment applies to this policy?",
+      "expected_answer": "A 50% base co-payment: the insured pays 50% of the admissible claim amount of each and every claim",
+      "evidence": "This policy will be subject to 50% base co-payment",
+      "category": "cost_sharing"
+    },
+    {
+      "id": "icici-002",
+      "document": "ICIHLIP22012V012223",
+      "question": "Can the base co-payment be changed during the policy term?",
+      "expected_answer": "No, once chosen the base co-payment cannot be changed mid-term; modification may happen only during renewal",
+      "evidence": "once chosen cannot be changed mid-term",
+      "category": "cost_sharing"
+    },
+    {
+      "id": "icici-003",
+      "document": "ICIHLIP22012V012223",
+      "question": "Is cataract treatment subject to a sub-limit?",
+      "expected_answer": "Yes, treatment of cataract has a per-eye sub-limit specified in the policy table",
+      "evidence": "Treatment of cataract",
+      "category": "benefit"
+    },
+    {
+      "id": "icici-004",
+      "document": "ICIHLIP22012V012223",
+      "question": "How is a Pre-existing Disease defined?",
+      "expected_answer": "Any condition diagnosed by a physician within 48 months prior to the effective date of the policy, or for which treatment was recommended or received",
+      "evidence": "diagnosed by a physician within 48 months prior to the effective date",
+      "category": "definition"
+    },
+    {
+      "id": "icici-005",
+      "document": "ICIHLIP22012V012223",
+      "question": "When can cumulative bonus be used?",
+      "expected_answer": "Only when the Annual Sum Insured is completely exhausted",
+      "evidence": "Cumulative bonus can be utilised only when the Annual Sum Insured is completely exhausted",
+      "category": "cost_sharing"
+    },
+    {
+      "id": "icici-006",
+      "document": "ICIHLIP22012V012223",
+      "question": "Under what condition is cumulative bonus not added?",
+      "expected_answer": "It will not be added if the policy is not renewed by the end of the Grace Period",
+      "evidence": "will not be added if the Policy is not renewed with Us by the end of the Grace Period",
+      "category": "renewal"
+    },
+    {
+      "id": "edelweiss-001",
+      "document": "EDLHLGA23009V012223",
+      "question": "What does the air ambulance add-on cover?",
+      "expected_answer": "Expenses incurred on air ambulance services used to transfer the insured person to a hospital or between hospitals with adequate emergency facilities",
+      "evidence": "expenses incurred on air ambulance services",
+      "category": "benefit"
+    },
+    {
+      "id": "edelweiss-002",
+      "document": "EDLHLGA23009V012223",
+      "question": "Between which facilities can the air ambulance transfer the insured person?",
+      "expected_answer": "To a hospital, or from one hospital to another, with adequate emergency facilities for Emergency Care",
+      "evidence": "transfer from one hospital to another with adequate emergency facilities",
+      "category": "benefit"
+    },
+    {
+      "id": "edelweiss-003",
+      "document": "EDLHLGA23009V012223",
+      "question": "What is the maximum the insurer pays for air ambulance claims?",
+      "expected_answer": "The maximum liability for the policy year is restricted to the Sum Insured stated for the benefit",
+      "evidence": "maximum liability under this Benefit",
+      "category": "benefit"
+    },
+    {
+      "id": "edelweiss-004",
+      "document": "EDLHLGA23009V012223",
+      "question": "Is air ambulance cover part of the base policy or an extra?",
+      "expected_answer": "It is an add-on wording available on payment of additional premium",
+      "evidence": "payment of additional premium to Us",
+      "category": "benefit"
+    }
+  ]
+}

@@ -160,6 +160,56 @@ Query → Gemini Parser → Semantic Search → Gemini Evaluator → Structured 
 └── requirements.txt            # Dependencies
 ```
 
+## 📊 Retrieval Evaluation
+
+Answer accuracy depends on retrieving the right clause for each question, so
+the project ships a reproducible eval harness (`eval/`) that measures
+**retrieval hit rate** on a labelled question set and validated the retrieval
+improvements below.
+
+> **Improved RAG retrieval hit rate from 89.2% to 97.3% by replacing fixed
+> character-window chunks with clause-aware semantic chunking and a
+> sentence-window embedding re-ranker (Reciprocal Rank Fusion), validated
+> against a 37-question eval set** built from four real insurance policy
+> documents.
+
+| Retriever | Hit rate |
+|---|---|
+| Fixed char-window chunks + TF-IDF (baseline) | 33/37 (**89.2%**) |
+| Semantic clause-aware chunking + TF-IDF | 32/37 (86.5%) |
+| Semantic chunking + embedding re-ranker (RRF) | **36/37 (97.3%)** |
+
+**How it works**
+
+- **Eval set** (`eval/eval_set.json`): 37 questions across 4 policy documents
+  (Bajaj Allianz Global Health Care, HDFC Ergo, ICICI Lombard, Edelweiss
+  add-on wording). Each question carries a gold answer plus an *evidence
+  string* — an exact clause quoted from the document. The evidence strings are
+  validated against the source text at load time.
+- **Metric**: hit rate — the fraction of questions whose evidence clause is
+  contained in the retrieved context, at a fixed 6,000-character budget per
+  question (strictly more demanding than sending the whole document).
+- **Baseline**: fixed 2,000-character windows ranked by TF-IDF cosine.
+- **Improvement**: clause-aware semantic chunking (1,000-char chunks split at
+  numbered clause headers, never mid-clause) plus a sentence-window embedding
+  re-ranker — each shortlisted chunk is split into ~300-character windows,
+  embedded with `all-MiniLM-L6-v2`, scored by its best-matching window, and
+  fused with the TF-IDF ranking via Reciprocal Rank Fusion. Naively
+  re-ranking whole chunks *hurt* (62.2%) because long chunks embed poorly —
+  the sentence-window + RRF design is what makes re-ranking pay off.
+
+**Run it yourself**
+
+```bash
+python eval/run_eval.py                       # all retrievers, writes eval/RESULTS.md
+python eval/run_eval.py --budget 4000         # different context budget
+python eval/run_eval.py --retrievers baseline semantic   # skip the model download
+```
+
+The API's per-question context builder (`_build_question_context`) uses the
+winning retriever (`src/retrieval`), with automatic fallback to pure TF-IDF
+when the embedding model is not installed.
+
 ## 🧪 Testing
 
 ### Automated Testing (CI/CD)

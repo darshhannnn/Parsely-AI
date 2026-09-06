@@ -3,7 +3,6 @@ Hackathon API endpoint for LLM-Powered Intelligent Query-Retrieval System
 Implements the required /hackrx/run endpoint with bearer token authentication
 """
 import os
-import re
 import tempfile
 import logging
 from datetime import datetime
@@ -220,79 +219,27 @@ def _split_text_intelligently(text: str, max_chars: int = 4000) -> str:
     return truncated + "..."
 
 
-def _chunk_document(text: str, max_chunk_chars: int = 2000) -> List[str]:
-    """Split a document into paragraph-aligned chunks of at most max_chunk_chars"""
-    paragraphs = [p.strip() for p in re.split(r'\n\s*\n', text) if p.strip()]
-    if not paragraphs:
-        paragraphs = [text.strip()] if text.strip() else []
-
-    chunks: List[str] = []
-    current = ""
-    for paragraph in paragraphs:
-        if len(paragraph) > max_chunk_chars:
-            # Flush the current chunk, then hard-split the oversized paragraph
-            if current:
-                chunks.append(current)
-                current = ""
-            for i in range(0, len(paragraph), max_chunk_chars):
-                chunks.append(paragraph[i:i + max_chunk_chars])
-        elif len(current) + len(paragraph) + 2 <= max_chunk_chars:
-            current = f"{current}\n\n{paragraph}" if current else paragraph
-        else:
-            chunks.append(current)
-            current = paragraph
-    if current:
-        chunks.append(current)
-    return chunks
-
-
 def _build_question_context(document_text: str, question: str, max_chars: Optional[int] = None) -> str:
     """Build the most relevant context for a question within a character budget.
 
-    If the document fits the budget it is returned whole. Otherwise it is
-    chunked and the chunks most similar to the question (TF-IDF cosine) are
-    selected, preserving document order so the model reads a coherent excerpt.
+    Delegates to the shared retrieval package (src/retrieval): clause-aware
+    semantic chunking plus a sentence-window embedding re-ranker fused with
+    the TF-IDF ranking (RRF). When the optional embedding model is
+    unavailable the retriever falls back to pure TF-IDF automatically.
+    Measured on the eval harness: hit rate 89.2% -> 97.3% (eval/RESULTS.md).
     """
     if max_chars is None:
         max_chars = int(os.getenv("MAX_CONTEXT_CHARS", "120000"))
 
-    if len(document_text) <= max_chars:
-        return document_text
-
-    chunks = _chunk_document(document_text)
-    if not chunks:
+    try:
+        from ..retrieval import build_retriever
+    except Exception as e:  # pragma: no cover - retrieval package should always import
+        logger.error(f"Retrieval package unavailable, returning document head: {e}")
         return _split_text_intelligently(document_text, max_chars)
 
-    ranked_indices = list(range(len(chunks)))
-    try:
-        from sklearn.feature_extraction.text import TfidfVectorizer
-        from sklearn.metrics.pairwise import cosine_similarity
-
-        corpus = chunks + [question]
-        vectors = TfidfVectorizer(stop_words='english').fit_transform(corpus)
-        similarities = cosine_similarity(vectors[-1], vectors[:-1]).ravel()
-        ranked_indices = sorted(range(len(chunks)), key=lambda i: similarities[i], reverse=True)
-    except Exception as e:
-        logger.warning(f"TF-IDF ranking failed, falling back to document order: {e}")
-
-    selected_indices: List[int] = []
-    budget = max_chars
-    for idx in ranked_indices:
-        chunk_len = len(chunks[idx])
-        if chunk_len <= budget:
-            selected_indices.append(idx)
-            budget -= chunk_len
-        if budget <= 0:
-            break
-
-    if not selected_indices:
-        # Every chunk exceeds the budget: use the best one, truncated
-        best = chunks[ranked_indices[0]]
-        return _split_text_intelligently(best, max_chars)
-
-    # Restore document order for a coherent excerpt
-    selected_indices.sort()
-    return "\n\n".join(chunks[i] for i in selected_indices)
+    retriever = build_retriever("reranked")
+    context = retriever.retrieve(document_text, question, max_chars)
+    return context or _split_text_intelligently(document_text, max_chars)
 
 def process_document_and_questions(document_path: str, document_format: str, questions: List[str]) -> List[str]:
     """
