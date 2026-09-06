@@ -27,13 +27,21 @@ except ImportError:
     pinecone = None
     Pinecone = None
     ServerlessSpec = None
+except Exception as e:
+    # e.g. the obsolete "pinecone-client" stub package raises at import time
+    PINECONE_AVAILABLE = False
+    pinecone = None
+    Pinecone = None
+    ServerlessSpec = None
+    import warnings
+    warnings.warn(f"Pinecone client could not be loaded: {e}")
 
 import numpy as np
 
 # Local imports
 from ...core.models import ContentChunk, Embedding, VectorIndex, SearchResult, ProcessingMetadata
 from ...core.interfaces import IEmbeddingSearchEngine
-from ...core.config import get_config
+from ...core import config as core_config
 from ...core.exceptions import VectorIndexError, PineconeError, SearchError
 from ...core.logging_utils import get_logger
 
@@ -81,7 +89,7 @@ class PineconeSearchEngine:
         if not PINECONE_AVAILABLE:
             raise PineconeError("Pinecone client not available. Install with: pip install pinecone-client")
         
-        self.config = get_config()
+        self.config = core_config.get_config()
         self.logger = get_logger(__name__)
         
         # Override config if provided

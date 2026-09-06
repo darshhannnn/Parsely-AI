@@ -1,4 +1,13 @@
 import pytest
+
+# The src.semantic_search package was removed during the final project cleanup
+# (see FINAL_CLEANUP.md); these tests describe the legacy architecture and are
+# skipped until that subsystem is reimplemented.
+pytest.importorskip(
+    "src.semantic_search.semantic_retriever",
+    reason="src.semantic_search was removed in project cleanup (see FINAL_CLEANUP.md)",
+)
+
 from src.semantic_search.semantic_retriever import SemanticRetriever
 from src.query_parsing.query_parser import QueryParser
 

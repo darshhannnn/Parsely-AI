@@ -5,6 +5,7 @@ Tests for the FAISS Search Engine
 import pytest
 import tempfile
 import shutil
+import time
 import numpy as np
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
@@ -472,9 +473,12 @@ class TestFAISSSearchEngine:
         # Measure search time
         query_vector = embeddings[0].vector
         start_time = time.time()
-        results = engine.search_similar_by_vector(query_vector, top_k=10)
+        # Disable the similarity threshold: with random vectors the top-10
+        # similarities are not guaranteed to clear the default 0.1 threshold,
+        # and this test measures speed, not filtering behaviour
+        results = engine.search_similar_by_vector(query_vector, top_k=10, similarity_threshold=-1.0)
         search_time = time.time() - start_time
-        
+
         assert len(results) == 10
         assert search_time < 1.0  # Should search within 1 second
         

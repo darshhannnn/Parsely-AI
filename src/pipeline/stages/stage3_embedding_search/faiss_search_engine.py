@@ -24,7 +24,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 # Local imports
 from ...core.models import ContentChunk, Embedding, VectorIndex, SearchResult, ProcessingMetadata
 from ...core.interfaces import IEmbeddingSearchEngine
-from ...core.config import get_config
+from ...core import config as core_config
 from ...core.exceptions import VectorIndexError, FAISSError, SearchError
 from ...core.logging_utils import get_logger
 
@@ -69,7 +69,7 @@ class FAISSSearchEngine:
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize the FAISS search engine"""
-        self.config = get_config()
+        self.config = core_config.get_config()
         self.logger = get_logger(__name__)
         
         # Override config if provided
@@ -85,8 +85,9 @@ class FAISSSearchEngine:
         self.chunk_metadata: Dict[str, ContentChunk] = {}  # Maps chunk IDs to chunk objects
         self.embeddings_store: Dict[str, List[float]] = {}  # Maps chunk IDs to embeddings
         
-        # Thread safety
-        self.index_lock = threading.Lock()
+        # Thread safety (reentrant: remove_vectors() holds the lock while
+        # calling build_index(), which acquires it again)
+        self.index_lock = threading.RLock()
         
         # Performance tracking
         self.stats = {

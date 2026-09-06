@@ -15,7 +15,7 @@ from enum import Enum
 # Local imports
 from ...core.models import ContentChunk, Embedding, VectorIndex, SearchResult
 from ...core.interfaces import IEmbeddingSearchEngine
-from ...core.config import get_config
+from ...core import config as core_config
 from ...core.exceptions import VectorIndexError, SearchError
 from ...core.logging_utils import get_logger
 
@@ -56,7 +56,7 @@ class UnifiedSearchEngine(IEmbeddingSearchEngine):
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize the unified search engine"""
-        self.config = get_config()
+        self.config = core_config.get_config()
         self.logger = get_logger(__name__)
         
         # Override config if provided
@@ -118,6 +118,9 @@ class UnifiedSearchEngine(IEmbeddingSearchEngine):
             
         except Exception as e:
             if isinstance(e, VectorIndexError):
+                # No engine could be activated
+                if not self.faiss_engine and not self.pinecone_engine:
+                    raise VectorIndexError(f"No search engines available: {e}") from e
                 raise
             self.logger.error(f"Failed to initialize search engines: {e}")
             # Fallback to FAISS if available

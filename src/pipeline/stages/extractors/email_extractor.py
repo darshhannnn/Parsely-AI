@@ -542,7 +542,10 @@ class EnhancedEmailExtractor:
         
         # Check for mismatched sender
         if headers.from_name and headers.from_addr:
-            if 'paypal' in headers.from_name.lower() and 'paypal.com' not in headers.from_addr.lower():
+            # Compare the actual sender domain, not a substring match —
+            # lookalike domains like "fake-paypal.com" must not count as paypal.com
+            sender_domain = headers.from_addr.lower().rsplit('@', 1)[-1]
+            if 'paypal' in headers.from_name.lower() and sender_domain != 'paypal.com':
                 indicators.append("Sender name/address mismatch")
         
         # Check for urgent language in body

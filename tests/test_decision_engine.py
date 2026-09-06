@@ -1,4 +1,13 @@
 import pytest
+
+# The src.decision_engine.claim_evaluator module was removed during the final
+# project cleanup (see FINAL_CLEANUP.md); these tests describe the legacy
+# architecture and are skipped until that subsystem is reimplemented.
+pytest.importorskip(
+    "src.decision_engine.claim_evaluator",
+    reason="src.decision_engine.claim_evaluator was removed in project cleanup (see FINAL_CLEANUP.md)",
+)
+
 from src.decision_engine.claim_evaluator import ClaimEvaluator
 from src.semantic_search.semantic_retriever import SemanticRetriever
 from src.query_parsing.query_parser import QueryParser

@@ -130,10 +130,14 @@ class TestEnhancedDOCXExtractor:
         mock_para1 = Mock()
         mock_para1.text = "Introduction"
         mock_para1.style.name = "Heading 1"
-        
+        mock_para1.runs = []
+        mock_para1.alignment = None
+
         mock_para2 = Mock()
         mock_para2.text = "This is the introduction content."
         mock_para2.style.name = "Normal"
+        mock_para2.runs = []
+        mock_para2.alignment = None
         
         # Mock document
         mock_doc = Mock()
@@ -303,7 +307,13 @@ Test Sender
         mock_msg.is_multipart.return_value = False
         mock_msg.get_content_type.return_value = 'text/plain'
         mock_msg.get_content.return_value = "Test email content"
-        
+        mock_msg.get.side_effect = lambda key, default='': {
+            'Subject': 'Test email',
+            'In-Reply-To': '',
+            'References': '',
+            'Thread-Index': '',
+        }.get(key, default)
+
         structure = extractor._analyze_email_structure(mock_msg)
         
         assert isinstance(structure, EmailStructure)

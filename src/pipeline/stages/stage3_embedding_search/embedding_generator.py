@@ -27,7 +27,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 # Local imports
 from ...core.models import ContentChunk, Embedding, ProcessingMetadata
 from ...core.interfaces import IEmbeddingSearchEngine
-from ...core.config import get_config
+from ...core import config as core_config
 from ...core.exceptions import EmbeddingGenerationError, CacheError
 from ...core.logging_utils import get_logger
 
@@ -68,7 +68,7 @@ class EmbeddingGenerator:
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize the embedding generator"""
-        self.config = get_config()
+        self.config = core_config.get_config()
         self.logger = get_logger(__name__)
         
         # Override config if provided
@@ -149,10 +149,20 @@ class EmbeddingGenerator:
         content_hash = self._get_content_hash(content)
         return f"{model_name}:{content_hash}"
     
+    def _get_cache_file_path(self, cache_key: str) -> Path:
+        """Get the disk cache file path for a cache key.
+
+        Cache keys contain ':' (model:hash), which Windows treats as an NTFS
+        alternate data stream instead of a file — making entries invisible to
+        glob() and undeletable. Replace it to get a real, manageable file.
+        """
+        safe_key = cache_key.replace(':', '_')
+        return self.embeddings_cache_dir / f"{safe_key}.pkl"
+
     def _load_disk_cache(self, cache_key: str) -> Optional[EmbeddingCache]:
         """Load embedding from disk cache"""
         try:
-            cache_file = self.embeddings_cache_dir / f"{cache_key}.pkl"
+            cache_file = self._get_cache_file_path(cache_key)
             if cache_file.exists():
                 with open(cache_file, 'rb') as f:
                     cache_entry = pickle.load(f)
@@ -176,7 +186,7 @@ class EmbeddingGenerator:
     def _save_disk_cache(self, cache_key: str, cache_entry: EmbeddingCache) -> None:
         """Save embedding to disk cache"""
         try:
-            cache_file = self.embeddings_cache_dir / f"{cache_key}.pkl"
+            cache_file = self._get_cache_file_path(cache_key)
             with open(cache_file, 'wb') as f:
                 pickle.dump(cache_entry, f)
         except Exception as e:
@@ -272,6 +282,8 @@ class EmbeddingGenerator:
                 if avg_similarity > 0.95:
                     return {
                         "valid": True,
+                        "dimension": dimensions[0],
+                        "count": len(embeddings),
                         "warning": f"High average similarity ({avg_similarity:.3f}) - possible quality issue"
                     }
             
@@ -416,6 +428,12 @@ class EmbeddingGenerator:
                             embedding_lists = embedding_tensors.cpu().numpy().tolist()
                         else:
                             embedding_lists = embedding_tensors.tolist()
+
+                        # Normalize shape: encode() may return a 1-D vector
+                        # for a single input, but batch processing expects a
+                        # list of vectors
+                        if embedding_lists and not isinstance(embedding_lists[0], list):
+                            embedding_lists = [embedding_lists]
                     
                     # Validate batch embeddings
                     validation = self._validate_embedding_quality(embedding_lists, uncached_contents)
@@ -567,18 +585,19 @@ class EmbeddingGenerator:
         try:
             for cache_file in self.embeddings_cache_dir.glob("*.pkl"):
                 try:
-                    with open(cache_file, 'rb') as f:
-                        cache_entry = pickle.load(f)
-                    
-                    if isinstance(cache_entry, EmbeddingCache):
-                        cache_age = current_time - cache_entry.created_at
-                        if cache_age.total_seconds() > ttl_seconds:
-                            cache_file.unlink()
-                            removed_count += 1
+                    # Use file mtime (== save time) instead of unpickling every
+                    # entry — unpickling hundreds of files is far too slow
+                    file_age_seconds = current_time.timestamp() - cache_file.stat().st_mtime
+                    if file_age_seconds > ttl_seconds:
+                        cache_file.unlink()
+                        removed_count += 1
                 except Exception:
-                    # Remove corrupted cache files
-                    cache_file.unlink()
-                    removed_count += 1
+                    # Remove corrupted/unreadable cache files
+                    try:
+                        cache_file.unlink()
+                        removed_count += 1
+                    except Exception:
+                        pass
         except Exception as e:
             self.logger.warning(f"Failed to clean disk cache: {e}")
         

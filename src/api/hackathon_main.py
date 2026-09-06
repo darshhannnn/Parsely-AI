@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -69,9 +69,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Security scheme for bearer token (already defined above)
-security = HTTPBearer()
-
 class HackathonRequest(BaseModel):
     """Request model matching hackathon specification"""
     documents: str = Field(
@@ -85,7 +82,7 @@ class HackathonRequest(BaseModel):
         max_length=10
     )
     
-    @validator('questions')
+    @field_validator('questions')
     def validate_questions(cls, questions):
         for question in questions:
             if not question.strip():
@@ -317,6 +314,9 @@ Answer:"""
         logger.info(f"Successfully processed {len(questions)} questions")
         return answers
         
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
         logger.error(f"Error in document processing pipeline: {str(e)}")
         raise HTTPException(

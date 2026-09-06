@@ -23,6 +23,15 @@ from ..core.utils import (
     safe_filename, create_temp_file, cleanup_temp_file, calculate_content_hash
 )
 
+# Enhanced extractors are optional; ContentExtractor falls back to basic
+# extraction when they cannot be loaded.
+try:
+    from .extractors import EnhancedPDFExtractor, EnhancedDOCXExtractor, EnhancedEmailExtractor
+except ImportError:
+    EnhancedPDFExtractor = None
+    EnhancedDOCXExtractor = None
+    EnhancedEmailExtractor = None
+
 
 class DocumentDownloader:
     """Handles secure document downloading with validation"""
@@ -211,28 +220,29 @@ class DocumentFormatDetector:
 
 class ContentExtractor:
     """Extracts content from different document formats using enhanced extractors"""
-    
+
     def __init__(self):
         self.logger = get_pipeline_logger()
-        
+
         # Initialize enhanced extractors
         try:
-            from .extractors import EnhancedPDFExtractor, EnhancedDOCXExtractor, EnhancedEmailExtractor
             self.pdf_extractor = EnhancedPDFExtractor()
             self.docx_extractor = EnhancedDOCXExtractor()
             self.email_extractor = EnhancedEmailExtractor()
             self.use_enhanced = True
             self.logger.info("Enhanced extractors loaded successfully")
-        except ImportError as e:
+        except (ImportError, TypeError) as e:
             self.logger.warning(f"Enhanced extractors not available, falling back to basic extraction: {e}")
             self.use_enhanced = False
     
     @timing_decorator
     def extract_content(self, document: DocumentContent, document_type: DocumentType) -> ExtractedContent:
         """Extract content based on document type"""
-        
+
         self.logger.info(f"Extracting content from {document_type.value} document")
-        
+
+        self._validate_content_matches_type(document, document_type)
+
         try:
             if self.use_enhanced:
                 # Use enhanced extractors
@@ -257,9 +267,28 @@ class ContentExtractor:
         
         except UnsupportedFormatError:
             raise
-        
+
         except Exception as e:
             raise ContentExtractionError(f"Failed to extract content: {e}", document_type.value)
+
+    def _validate_content_matches_type(self, document: DocumentContent, document_type: DocumentType) -> None:
+        """Verify the raw content signature matches the declared document type"""
+        content = document.raw_content or b""
+        supported_list = [fmt.value for fmt in DocumentType]
+
+        if document_type == DocumentType.PDF:
+            matches = content.startswith(b'%PDF')
+        elif document_type == DocumentType.DOCX:
+            matches = content.startswith(b'PK\x03\x04')
+        elif document_type == DocumentType.EMAIL:
+            header = content[:1000].decode('utf-8', errors='ignore').lower()
+            email_headers = ('return-path:', 'received:', 'from:', 'to:', 'subject:', 'date:', 'message-id:')
+            matches = any(header_line in header for header_line in email_headers)
+        else:
+            matches = False
+
+        if not matches:
+            raise UnsupportedFormatError(document.content_type, supported_list)
     
     def _extract_pdf_content(self, document: DocumentContent) -> ExtractedContent:
         """Extract content from PDF document"""

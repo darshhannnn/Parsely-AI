@@ -163,7 +163,8 @@ class GoogleGeminiProvider(ILLMProvider):
         return True
     
     @timing_decorator
-    @retry_decorator(max_retries=3, delay=1.0, backoff=2.0)
+    @retry_decorator(max_retries=3, delay=1.0, backoff=2.0,
+                     no_retry_on=(LLMRateLimitError, LLMAPIError, LLMTimeoutError))
     def generate(self, request: LLMRequest) -> LLMResponse:
         """Generate response using Google Gemini"""
         start_time = time.time()
@@ -358,7 +359,8 @@ class OpenAIProvider(ILLMProvider):
         return True
     
     @timing_decorator
-    @retry_decorator(max_retries=3, delay=1.0, backoff=2.0)
+    @retry_decorator(max_retries=3, delay=1.0, backoff=2.0,
+                     no_retry_on=(LLMRateLimitError, LLMAPIError, LLMTimeoutError))
     def generate(self, request: LLMRequest) -> LLMResponse:
         """Generate response using OpenAI GPT"""
         start_time = time.time()

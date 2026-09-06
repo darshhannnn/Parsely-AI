@@ -14,7 +14,11 @@ import uuid
 import json
 import asyncio
 from functools import wraps
-import psutil
+
+try:
+    import psutil
+except ImportError:
+    psutil = None  # Optional dependency: only used by get_system_info()
 
 logger = logging.getLogger(__name__)
 
@@ -176,53 +180,63 @@ def async_timing_decorator(func):
     return wrapper
 
 
-def retry_decorator(max_retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
-    """Decorator for retrying failed operations with exponential backoff"""
+def retry_decorator(max_retries: int = 3, delay: float = 1.0, backoff: float = 2.0,
+                    no_retry_on: tuple = ()):
+    """Decorator for retrying failed operations with exponential backoff.
+
+    Exceptions listed in no_retry_on are re-raised immediately without retrying
+    (e.g. rate limit errors where retrying would only make things worse).
+    """
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             current_delay = delay
             last_exception = None
-            
+
             for attempt in range(max_retries + 1):
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
+                    if no_retry_on and isinstance(e, no_retry_on):
+                        raise
                     last_exception = e
                     if attempt == max_retries:
                         logger.error(f"{func.__name__} failed after {max_retries + 1} attempts: {e}")
                         raise
-                    
+
                     logger.warning(f"{func.__name__} attempt {attempt + 1} failed: {e}. Retrying in {current_delay}s...")
                     time.sleep(current_delay)
                     current_delay *= backoff
-            
+
             raise last_exception
         return wrapper
     return decorator
 
 
-def async_retry_decorator(max_retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
+def async_retry_decorator(max_retries: int = 3, delay: float = 1.0, backoff: float = 2.0,
+                          no_retry_on: tuple = ()):
     """Async decorator for retrying failed operations with exponential backoff"""
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             current_delay = delay
             last_exception = None
-            
+
             for attempt in range(max_retries + 1):
                 try:
                     return await func(*args, **kwargs)
                 except Exception as e:
+                    if no_retry_on and isinstance(e, no_retry_on):
+                        raise
                     last_exception = e
                     if attempt == max_retries:
                         logger.error(f"{func.__name__} failed after {max_retries + 1} attempts: {e}")
                         raise
-                    
+
                     logger.warning(f"{func.__name__} attempt {attempt + 1} failed: {e}. Retrying in {current_delay}s...")
                     await asyncio.sleep(current_delay)
                     current_delay *= backoff
-            
+
             raise last_exception
         return wrapper
     return decorator
@@ -253,6 +267,8 @@ def extract_domain(url: str) -> str:
 
 def get_system_info() -> Dict[str, Any]:
     """Get current system information"""
+    if psutil is None:
+        return {"error": "psutil not installed", "timestamp": datetime.now().isoformat()}
     try:
         return {
             "cpu_percent": psutil.cpu_percent(interval=1),

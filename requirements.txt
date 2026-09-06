@@ -17,6 +17,9 @@ python-dotenv>=1.0.0
 google-generativeai>=0.3.0
 langchain-google-genai>=0.0.9
 
+# OpenAI (secondary LLM provider)
+openai>=1.0.0
+
 # Embeddings and semantic search
 scikit-learn>=1.3.0
 sentence-transformers>=2.2.0
@@ -28,13 +31,14 @@ transformers==4.43.1
 
 # Vector Database and Search
 faiss-cpu>=1.7.4
-pinecone-client>=3.0.0
+pinecone>=3.0.0
 
 # Additional utilities
 numpy>=1.24.0
 pandas>=2.0.0
 python-json-logger>=2.0.0
 loguru>=0.7.0
+psutil>=5.9.0
 
 # API Security and Rate Limiting
 slowapi>=0.1.8

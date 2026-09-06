@@ -1,4 +1,13 @@
 import pytest
+
+# The src.query_parsing package was removed during the final project cleanup
+# (see FINAL_CLEANUP.md); these tests describe the legacy architecture and are
+# skipped until that subsystem is reimplemented.
+pytest.importorskip(
+    "src.query_parsing.query_parser",
+    reason="src.query_parsing was removed in project cleanup (see FINAL_CLEANUP.md)",
+)
+
 from src.query_parsing.query_parser import QueryParser
 
 @pytest.fixture

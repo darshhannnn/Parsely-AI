@@ -141,14 +141,17 @@ class TestPineconeSearchEngine:
         mock_pc, mock_index = mock_pinecone_client
         mock_pinecone_class.return_value = mock_pc
         
-        # Mock existing index
-        mock_pc.list_indexes.return_value = [Mock(name="test-index")]
-        
+        # Mock existing index (note: Mock(name=...) does not set the .name
+        # attribute, so it must be assigned explicitly)
+        existing_index = Mock()
+        existing_index.name = "test-index"
+        mock_pc.list_indexes.return_value = [existing_index]
+
         engine = PineconeSearchEngine()
         engine.index = mock_index
-        
+
         result = engine.build_index(sample_embeddings)
-        
+
         assert isinstance(result, VectorIndex)
         # Should not call create_index since it exists
         mock_pc.create_index.assert_not_called()

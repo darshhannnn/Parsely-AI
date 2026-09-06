@@ -3,6 +3,7 @@ Main FastAPI Application for Document Processing Pipeline
 """
 
 import os
+import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -13,18 +14,28 @@ from pydantic import BaseModel, Field
 from ..pipeline.pipeline_orchestrator import DocumentProcessingPipeline
 from ..pipeline.core.models import ProcessingOptions, JSONResponse as PipelineResponse
 
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
+logger = logging.getLogger(__name__)
 
-limiter = Limiter(key_func=get_remote_address)
+# Optional rate limiting - gracefully handle if slowapi is not available
+try:
+    from slowapi import Limiter, _rate_limit_exceeded_handler
+    from slowapi.util import get_remote_address
+    from slowapi.errors import RateLimitExceeded
+    RATE_LIMITING_AVAILABLE = True
+except ImportError:
+    logger.warning("slowapi not available - rate limiting disabled")
+    RATE_LIMITING_AVAILABLE = False
+
 app = FastAPI(
     title="Parsely AI - Document Processing API",
     description="Advanced 6-stage document analysis pipeline powered by LLMs",
     version="2.0.0"
 )
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+if RATE_LIMITING_AVAILABLE:
+    limiter = Limiter(key_func=get_remote_address)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS configuration
 app.add_middleware(
@@ -66,6 +77,8 @@ async def process_document(request: ProcessRequest):
                 detail=response.error_message or "Unknown processing error"
             )
         return response
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

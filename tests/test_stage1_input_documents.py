@@ -280,8 +280,9 @@ class TestContentExtractor:
             content_type='text/plain',
             raw_content=b'plain text'
         )
-        
-        with pytest.raises(ContentExtractionError):
+
+        # Content does not match the declared PDF type
+        with pytest.raises(UnsupportedFormatError):
             extractor.extract_content(document, DocumentType.PDF)  # Wrong type
 
 

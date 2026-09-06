@@ -101,3 +101,15 @@ yarn-error.log*
 # Monitoring data
 prometheus_data/
 redis_data/
+# Railway environment
+.env.railway
+
+# Generated runtime artifacts
+models/
+temp/
+temp_test_cache/
+data/faiss_indexes/
+data/Travel_Insurance/
+
+# Test run outputs
+test_output*.txt

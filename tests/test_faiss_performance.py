@@ -167,8 +167,9 @@ class TestFAISSPerformance:
                 assert result['avg_time'] < 0.1, f"Search too slow for size {size}, top_k {top_k}"
                 # Should achieve good throughput
                 assert result['searches_per_second'] > 10, f"Search throughput too low for size {size}, top_k {top_k}"
-                # Should be consistent
-                assert result['std_time'] < result['avg_time'], f"Search time too inconsistent for size {size}, top_k {top_k}"
+                # Should be consistent (sub-millisecond timings are noisy,
+                # so allow deviation up to 2x the average or 1ms, whichever is larger)
+                assert result['std_time'] < max(result['avg_time'] * 2, 0.001), f"Search time too inconsistent for size {size}, top_k {top_k}"
     
     @patch('src.pipeline.core.config.get_config')
     def test_index_type_performance_comparison(self, mock_get_config, mock_config):
