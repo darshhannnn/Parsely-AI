@@ -59,6 +59,14 @@ class TestHackathonAPI:
         assert "message" in data
         assert "main_endpoint" in data
         assert data["main_endpoint"] == "/hackrx/run"
+        assert data["web_interface"] == "/ui"
+
+    def test_web_interface_served(self):
+        """Test the browser testing interface is served at /ui"""
+        response = client.get("/ui")
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+        assert "LLM Document Processing" in response.text
 
     def test_authentication_valid_token(self):
         """Test authentication with valid token"""

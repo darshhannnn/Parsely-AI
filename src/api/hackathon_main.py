@@ -6,12 +6,13 @@ import os
 import tempfile
 import logging
 from datetime import datetime
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 import requests
 from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from dotenv import load_dotenv
@@ -590,8 +591,23 @@ def root():
         "description": "Intelligent multi-format document query processing with blob URL support",
         "main_endpoint": "/hackrx/run",
         "documentation": "/docs",
+        "web_interface": "/ui",
         "health_check": "/health"
     }
+
+# Path to the browser-based testing interface shipped with the project
+WEB_INTERFACE_PATH = Path(__file__).resolve().parent.parent.parent / "web_interface.html"
+
+
+@app.get("/ui", summary="Web testing interface", include_in_schema=True)
+def web_interface():
+    """Serve the browser-based testing interface for the API"""
+    if WEB_INTERFACE_PATH.exists():
+        return FileResponse(WEB_INTERFACE_PATH)
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="web_interface.html not found next to the project root"
+    )
 
 if __name__ == "__main__":
     import uvicorn
