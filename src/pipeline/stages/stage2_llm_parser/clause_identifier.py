@@ -122,7 +122,7 @@ class IdentifiedClause:
     
     def _generate_clause_id(self) -> str:
         """Generate unique clause ID"""
-        content_hash = hashlib.md5(self.content.encode()).hexdigest()[:8]
+        content_hash = hashlib.md5(self.content.encode(), usedforsecurity=False).hexdigest()[:8]
         return f"{self.document_id}_clause_{self.start_position}_{content_hash}"
     
     def to_dict(self) -> Dict[str, Any]:

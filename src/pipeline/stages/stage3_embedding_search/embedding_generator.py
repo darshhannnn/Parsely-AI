@@ -165,7 +165,7 @@ class EmbeddingGenerator:
             cache_file = self._get_cache_file_path(cache_key)
             if cache_file.exists():
                 with open(cache_file, 'rb') as f:
-                    cache_entry = pickle.load(f)
+                    cache_entry = pickle.load(f)  # nosec B301 - our own cache file, not untrusted input
                     
                 # Check if cache entry is still valid (not expired)
                 if isinstance(cache_entry, EmbeddingCache):

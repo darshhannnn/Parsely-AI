@@ -79,7 +79,7 @@ class ContentChunk:
     
     def _generate_chunk_id(self) -> str:
         """Generate unique chunk ID"""
-        content_hash = hashlib.md5(self.content.encode()).hexdigest()[:8]
+        content_hash = hashlib.md5(self.content.encode(), usedforsecurity=False).hexdigest()[:8]
         return f"{self.document_id}_{self.start_position}_{content_hash}"
     
     def _split_sentences(self, text: str) -> List[str]:

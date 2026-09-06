@@ -31,8 +31,8 @@ def generate_correlation_id() -> str:
 def generate_document_id(url: str, content_hash: Optional[str] = None) -> str:
     """Generate a unique document ID based on URL and content"""
     if content_hash:
-        return hashlib.md5(f"{url}:{content_hash}".encode()).hexdigest()
-    return hashlib.md5(url.encode()).hexdigest()
+        return hashlib.md5(f"{url}:{content_hash}".encode(), usedforsecurity=False).hexdigest()
+    return hashlib.md5(url.encode(), usedforsecurity=False).hexdigest()
 
 
 def calculate_content_hash(content: Union[str, bytes]) -> str:

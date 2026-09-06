@@ -84,9 +84,9 @@ class MetadataExtractor:
             'response_headers': document.metadata.get('response_headers', {}),
             'status_code': document.metadata.get('status_code'),
             'content_hash': {
-                'md5': hashlib.md5(document.raw_content).hexdigest(),
+                'md5': hashlib.md5(document.raw_content, usedforsecurity=False).hexdigest(),
                 'sha256': calculate_content_hash(document.raw_content),
-                'sha1': hashlib.sha1(document.raw_content).hexdigest()
+                'sha1': hashlib.sha1(document.raw_content, usedforsecurity=False).hexdigest()
             }
         }
     

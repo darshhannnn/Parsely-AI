@@ -705,7 +705,7 @@ def web_interface():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    host = "0.0.0.0"
+    host = "0.0.0.0"  # nosec B104 — binding all interfaces is required for container hosting
     
     logger.info(f"Starting Parsely AI Hackathon API on {host}:{port}")
     logger.info(f"Health check: http://{host}:{port}/health")

@@ -304,7 +304,7 @@ class FAISSSearchEngine:
                 metadata_file = self._get_metadata_file_path(index_id)
                 if metadata_file.exists():
                     with open(metadata_file, 'rb') as f:
-                        self.index_metadata = pickle.load(f)
+                        self.index_metadata = pickle.load(f)  # nosec B301 - our own index metadata file
                 else:
                     # Create basic metadata if not found
                     self.index_metadata = FAISSIndexMetadata(
@@ -320,7 +320,7 @@ class FAISSSearchEngine:
                 mappings_file = self._get_mappings_file_path(index_id)
                 if mappings_file.exists():
                     with open(mappings_file, 'rb') as f:
-                        mappings_data = pickle.load(f)
+                        mappings_data = pickle.load(f)  # nosec B301 - our own mappings file
                         self.chunk_id_mapping = mappings_data.get('chunk_id_mapping', {})
                         self.chunk_metadata = mappings_data.get('chunk_metadata', {})
                         self.embeddings_store = mappings_data.get('embeddings_store', {})
