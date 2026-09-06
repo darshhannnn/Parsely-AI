@@ -3,6 +3,7 @@ Hackathon API endpoint for LLM-Powered Intelligent Query-Retrieval System
 Implements the required /hackrx/run endpoint with bearer token authentication
 """
 import os
+import re
 import tempfile
 import logging
 from datetime import datetime
@@ -218,6 +219,81 @@ def _split_text_intelligently(text: str, max_chars: int = 4000) -> str:
     # If no good sentence boundary found, just truncate and add ellipsis
     return truncated + "..."
 
+
+def _chunk_document(text: str, max_chunk_chars: int = 2000) -> List[str]:
+    """Split a document into paragraph-aligned chunks of at most max_chunk_chars"""
+    paragraphs = [p.strip() for p in re.split(r'\n\s*\n', text) if p.strip()]
+    if not paragraphs:
+        paragraphs = [text.strip()] if text.strip() else []
+
+    chunks: List[str] = []
+    current = ""
+    for paragraph in paragraphs:
+        if len(paragraph) > max_chunk_chars:
+            # Flush the current chunk, then hard-split the oversized paragraph
+            if current:
+                chunks.append(current)
+                current = ""
+            for i in range(0, len(paragraph), max_chunk_chars):
+                chunks.append(paragraph[i:i + max_chunk_chars])
+        elif len(current) + len(paragraph) + 2 <= max_chunk_chars:
+            current = f"{current}\n\n{paragraph}" if current else paragraph
+        else:
+            chunks.append(current)
+            current = paragraph
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _build_question_context(document_text: str, question: str, max_chars: Optional[int] = None) -> str:
+    """Build the most relevant context for a question within a character budget.
+
+    If the document fits the budget it is returned whole. Otherwise it is
+    chunked and the chunks most similar to the question (TF-IDF cosine) are
+    selected, preserving document order so the model reads a coherent excerpt.
+    """
+    if max_chars is None:
+        max_chars = int(os.getenv("MAX_CONTEXT_CHARS", "120000"))
+
+    if len(document_text) <= max_chars:
+        return document_text
+
+    chunks = _chunk_document(document_text)
+    if not chunks:
+        return _split_text_intelligently(document_text, max_chars)
+
+    ranked_indices = list(range(len(chunks)))
+    try:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+
+        corpus = chunks + [question]
+        vectors = TfidfVectorizer(stop_words='english').fit_transform(corpus)
+        similarities = cosine_similarity(vectors[-1], vectors[:-1]).ravel()
+        ranked_indices = sorted(range(len(chunks)), key=lambda i: similarities[i], reverse=True)
+    except Exception as e:
+        logger.warning(f"TF-IDF ranking failed, falling back to document order: {e}")
+
+    selected_indices: List[int] = []
+    budget = max_chars
+    for idx in ranked_indices:
+        chunk_len = len(chunks[idx])
+        if chunk_len <= budget:
+            selected_indices.append(idx)
+            budget -= chunk_len
+        if budget <= 0:
+            break
+
+    if not selected_indices:
+        # Every chunk exceeds the budget: use the best one, truncated
+        best = chunks[ranked_indices[0]]
+        return _split_text_intelligently(best, max_chars)
+
+    # Restore document order for a coherent excerpt
+    selected_indices.sort()
+    return "\n\n".join(chunks[i] for i in selected_indices)
+
 def process_document_and_questions(document_path: str, document_format: str, questions: List[str]) -> List[str]:
     """
     Process multi-format document and answer questions using the enhanced 6-stage pipeline.
@@ -260,27 +336,40 @@ def process_document_and_questions(document_path: str, document_format: str, que
             return ["Document appears to be empty or unreadable" for _ in questions]
         
         logger.info(f"Extracted {len(document_text)} characters from {document_format} document")
-        
-        # Intelligently split document text to avoid truncation issues
-        document_context = _split_text_intelligently(document_text, max_chars=4000)
 
         # Stages 2-6: Process each question with enhanced context
+        max_context_chars = int(os.getenv("MAX_CONTEXT_CHARS", "120000"))
+        document_fits = len(document_text) <= max_context_chars
+        if not document_fits:
+            logger.info(
+                f"Document exceeds context budget ({len(document_text)} > {max_context_chars}); "
+                f"per-question retrieval is enabled"
+            )
+
         answers = []
         for question in questions:
             logger.info(f"Processing question: {question}")
-            
+
             try:
+                # Per-question context: the whole document when it fits the
+                # model's context window, otherwise the most relevant chunks
+                document_context = _build_question_context(
+                    document_text, question, max_context_chars
+                )
+
                 # Enhanced approach: Use document structure and metadata
                 context_info = ""
                 if metadata.get('sections'):
-                    context_info += f"Document has {len(metadata['sections'])} sections: {', '.join(metadata['sections'].keys())}\n"
+                    context_info += f"Document has {len(metadata['sections'])} sections: {', '.join(list(metadata['sections'].keys())[:20])}\n"
                 if metadata.get('document_type'):
                     context_info += f"Document type: {metadata['document_type']}\n"
                 if metadata.get('word_count'):
                     context_info += f"Word count: {metadata['word_count']}\n"
-                
+                if not document_fits:
+                    context_info += "Note: only the excerpts most relevant to the question are included below.\n"
+
                 prompt = f"""
-You are an expert document analyzer with access to a {document_format.upper()} document. Based on the provided document content and structure, please answer the question accurately and professionally.
+You are an expert document analyst. Answer the question using ONLY the provided document content.
 
 Document Information:
 {context_info}
@@ -291,23 +380,27 @@ Document Content:
 Question: {question}
 
 Instructions:
-1. Focus only on information present in the provided document content
-2. Use the document structure and metadata to provide more accurate answers
-3. If information is not available, clearly state: "Based on the provided document content, this information is not available."
-4. Be precise and factual, citing specific sections when relevant
-5. Keep the answer concise and professional
+1. Base your answer strictly on the document content provided above.
+2. Extract exact figures wherever they exist: amounts, percentages, time periods, limits, and waiting periods. Quote them precisely as written.
+3. Cite the specific section, clause number, or heading the answer comes from.
+4. If several clauses are relevant, synthesize them and mention each one.
+5. If the information genuinely does not appear in the document, state exactly: "Based on the provided document content, this information is not available." Do not guess.
+6. Be precise, factual and professional.
 
 Answer:"""
 
-                response = model.generate_content(prompt)
+                response = model.generate_content(
+                    prompt,
+                    generation_config={"temperature": 0.1},
+                )
                 answer = response.text.strip()
-                
+
                 # Ensure reasonable length
-                if len(answer) > 500:
-                    answer = answer[:497] + "..."
-                
+                if len(answer) > 2000:
+                    answer = answer[:1997] + "..."
+
                 answers.append(answer)
-                
+
             except Exception as e:
                 logger.error(f"Error processing question '{question}': {str(e)}")
                 answers.append(f"Unable to process question due to error: {str(e)}")

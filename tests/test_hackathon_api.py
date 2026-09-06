@@ -230,20 +230,37 @@ class TestProcessDocumentAndQuestions:
     @patch('google.generativeai.GenerativeModel')
     @patch('src.api.hackathon_main.extract_pdf_content_enhanced')
     def test_long_answer_truncation(self, mock_extract, mock_genai_model, monkeypatch):
-        """Test answers longer than 500 characters are truncated"""
+        """Test answers longer than 2000 characters are truncated"""
         monkeypatch.setattr("src.api.hackathon_main.GOOGLE_API_KEY", "test-key")
 
         mock_extract.return_value = ("Sample policy document text.", {"sections": {}})
 
         mock_model = Mock()
-        mock_model.generate_content.return_value.text = "x" * 600
+        mock_model.generate_content.return_value.text = "x" * 2500
         mock_genai_model.return_value = mock_model
 
         result = process_document_and_questions("/tmp/test.pdf", "pdf", ["Question?"])
 
         assert len(result) == 1
-        assert len(result[0]) == 500
+        assert len(result[0]) == 2000
         assert result[0].endswith("...")
+
+    @patch('google.generativeai.GenerativeModel')
+    @patch('src.api.hackathon_main.extract_pdf_content_enhanced')
+    def test_low_temperature_generation(self, mock_extract, mock_genai_model, monkeypatch):
+        """Test generation uses low temperature for factual extraction"""
+        monkeypatch.setattr("src.api.hackathon_main.GOOGLE_API_KEY", "test-key")
+
+        mock_extract.return_value = ("Sample policy document text.", {"sections": {}})
+
+        mock_model = Mock()
+        mock_model.generate_content.return_value.text = "Answer."
+        mock_genai_model.return_value = mock_model
+
+        process_document_and_questions("/tmp/test.pdf", "pdf", ["Question?"])
+
+        call_kwargs = mock_model.generate_content.call_args[1]
+        assert call_kwargs["generation_config"]["temperature"] == 0.1
 
     @patch('src.api.hackathon_main.extract_pdf_content_enhanced')
     def test_missing_api_key(self, mock_extract, monkeypatch):
