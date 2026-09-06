@@ -93,7 +93,9 @@ class TestHackathonAPI:
     def test_authentication_missing_token(self):
         """Test authentication with missing token"""
         response = client.post("/hackrx/run", json=self.test_request)
-        assert response.status_code == 403  # FastAPI returns 403 for missing auth
+        # FastAPI returns 403 on older versions and 401 (with a
+        # WWW-Authenticate header) on newer ones for missing credentials
+        assert response.status_code in (401, 403)
 
     def test_request_validation_missing_documents(self):
         """Test request validation with missing documents field"""
